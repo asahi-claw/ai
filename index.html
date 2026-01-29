@@ -1,0 +1,220 @@
+<!DOCTYPE html><html lang="zh-TW"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智學中心 - 互動學習資源庫</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .game-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .game-card:hover {
+            transform: translateY(-4px);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-slate-200 py-4 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-6 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <i data-lucide="graduation-cap" class="w-6 h-6 text-indigo-600"></i>
+                <span class="text-lg font-bold tracking-tight">智學中心</span>
+            </div>
+            <div class="relative w-48 md:w-64">
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
+                <input type="text" id="searchInput" placeholder="搜尋遊戲..." class="w-full pl-9 pr-3 py-1.5 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <header class="max-w-6xl mx-auto px-6 pt-10 pb-6">
+        <h1 class="text-3xl font-extrabold text-slate-900 mb-2">互動學習資源庫</h1>
+        <p class="text-slate-500 text-sm">選擇一個主題，開始你的沉浸式學習之旅。</p>
+    </header>
+
+    <!-- Filters -->
+    <div class="max-w-6xl mx-auto px-6 mb-8">
+        <div class="flex items-center gap-3 overflow-x-auto pb-2 no-scrollbar" id="categoryContainer">
+            <div class="flex items-center gap-2 text-slate-400 mr-2">
+                <i data-lucide="filter" class="w-4 h-4"></i>
+            </div>
+            <!-- Categories will be injected here -->
+        </div>
+    </div>
+
+    <!-- Main Content: 3-Column Grid -->
+    <main class="max-w-6xl mx-auto px-6 pb-20">
+        <div id="gameGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Game cards will be injected here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden text-center py-20 bg-white rounded-2xl border border-slate-200">
+            <i data-lucide="gamepad-2" class="w-12 h-12 text-slate-200 mx-auto mb-3"></i>
+            <p class="text-slate-500 font-medium">未找到相關遊戲</p>
+            <button onclick="resetFilters()" class="mt-4 text-indigo-600 text-sm font-bold hover:underline">
+                清除所有篩選
+            </button>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200 bg-white py-8">
+        <div class="max-w-6xl mx-auto px-6 text-center">
+            <p class="text-slate-400 text-xs">
+                © <span id="year"></span> 智學教育中心 · 專業互動學習平台
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        const GAMES_DATA = [
+            { id: 1, title: "方程式探險家", category: "數學", description: "透過互動式太空謎題掌握代數表達式。解開方程式，導航你的飛船穿過小行星帶。", icon: "calculator", color: "bg-blue-500", time: "10-15 分鐘", difficulty: "中級", url: "https://example.com/math-game" },
+            { id: 2, title: "語法銀河", category: "語言", description: "識別詞性並糾正語法錯誤，重建陷落的文明。非常適合提升句子結構理解能力。", icon: "book-open", color: "bg-purple-500", time: "5-10 分鐘", difficulty: "初級", url: "https://example.com/grammar-game" },
+            { id: 3, title: "元素匹配者", category: "科學", description: "快節奏的化學遊戲，透過組合元素創建化合物。在模式識別中學習元素週期表。", icon: "beaker", color: "bg-emerald-500", time: "15-20 分鐘", difficulty: "高級", url: "https://example.com/science-game" },
+            { id: 4, title: "時空旅行者", category: "歷史", description: "將歷史事件拖放到正確的年代順序中。探索從古代文明到現代突破的漫長旅程。", icon: "globe-2", color: "bg-amber-500", time: "10 分鐘", difficulty: "中級", url: "https://example.com/history-game" },
+            { id: 5, title: "分數大作戰", category: "數學", description: "使用互動的披薩和圓餅圖視覺化整體的一部分。是建立比例基礎概念的絕佳工具。", icon: "calculator", color: "bg-blue-600", time: "5 分鐘", difficulty: "初級", url: "https://example.com/fraction-game" },
+            { id: 6, title: "細胞結構實驗室", category: "科學", description: "在這場微觀冒險中標記植物和動物細胞的各個部分。包含細胞器功能的詳細說明。", icon: "beaker", color: "bg-emerald-600", time: "15 分鐘", difficulty: "中級", url: "https://example.com/cell-game" }
+        ];
+
+        let currentFilter = '全部';
+        let searchQuery = '';
+
+        function init() {
+            document.getElementById('year').textContent = new Date().getFullYear();
+            renderCategories();
+            renderGames();
+            
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                searchQuery = e.target.value.toLowerCase();
+                renderGames();
+            });
+
+            lucide.createIcons();
+        }
+
+        function renderCategories() {
+            const categories = ['全部', ...new Set(GAMES_DATA.map(g => g.category))];
+            const container = document.getElementById('categoryContainer');
+            
+            categories.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.className = getCategoryClass(cat === currentFilter);
+                btn.textContent = cat;
+                btn.onclick = () => {
+                    currentFilter = cat;
+                    updateCategoryStyles();
+                    renderGames();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function getCategoryClass(isActive) {
+            return `category-btn px-5 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap border ${
+                isActive 
+                ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' 
+                : 'bg-white text-slate-600 hover:bg-slate-100 border-slate-200'
+            }`;
+        }
+
+        function updateCategoryStyles() {
+            const buttons = document.querySelectorAll('.category-btn');
+            buttons.forEach(btn => {
+                const isActive = btn.textContent === currentFilter;
+                btn.className = getCategoryClass(isActive);
+            });
+        }
+
+        function renderGames() {
+            const grid = document.getElementById('gameGrid');
+            const emptyState = document.getElementById('emptyState');
+            
+            const filtered = GAMES_DATA.filter(game => {
+                const matchesFilter = currentFilter === '全部' || game.category === currentFilter;
+                const matchesSearch = game.title.toLowerCase().includes(searchQuery) || 
+                                     game.description.toLowerCase().includes(searchQuery);
+                return matchesFilter && matchesSearch;
+            });
+
+            grid.innerHTML = '';
+            
+            if (filtered.length === 0) {
+                grid.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+            } else {
+                grid.classList.remove('hidden');
+                emptyState.classList.add('hidden');
+                
+                filtered.forEach(game => {
+                    const card = document.createElement('div');
+                    card.className = 'game-card bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex flex-col h-full';
+                    card.innerHTML = `
+                        <div class="h-24 ${game.color} flex items-center justify-center relative">
+                            <div class="bg-white/20 backdrop-blur-sm p-3 rounded-xl text-white">
+                                <i data-lucide="${game.icon}" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+                        <div class="p-5 flex flex-col flex-grow">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-[10px] font-bold uppercase tracking-widest text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                                    ${game.category}
+                                </span>
+                                <div class="flex items-center gap-1 text-slate-400 text-xs">
+                                    <i data-lucide="clock" class="w-3 h-3"></i>
+                                    ${game.time}
+                                </div>
+                            </div>
+                            <h3 class="text-lg font-bold text-slate-900 mb-2">${game.title}</h3>
+                            <p class="text-slate-600 text-sm leading-snug mb-4 flex-grow">${game.description}</p>
+                            <div class="flex items-center gap-3 mb-5 text-xs font-medium text-slate-500">
+                                <div class="flex items-center gap-1">
+                                    <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-500"></i>
+                                    <span>${game.difficulty}</span>
+                                </div>
+                            </div>
+                            <a href="${game.url}" target="_blank" class="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:bg-indigo-600 transition-colors">
+                                開始探索
+                                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                            </a>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+                lucide.createIcons();
+            }
+        }
+
+        function resetFilters() {
+            currentFilter = '全部';
+            searchQuery = '';
+            document.getElementById('searchInput').value = '';
+            updateCategoryStyles();
+            renderGames();
+        }
+
+        window.onload = init;
+    </script>
+
+
+</body></html>
