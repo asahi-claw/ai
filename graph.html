@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>圖表繪製程式 (教師版) - 線條顏色版</title>
+    <style>
+        /* --- 樣式設定 --- */
+        body {
+            /* 字體設定：英文 Times New Roman 優先，中文 新細明體 其次 */
+            font-family: "Times New Roman", "PMingLiU", "新細明體", serif;
+            background: #FFFDE4;
+            color: #1d1d1d;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+
+        #wrap {
+            width: 1024px;
+            margin: 0 auto;
+            background-color: #FFFFFF;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-radius: 8px;
+            text-align: left;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        h2.header {
+            background-color: #663399;
+            color: white;
+            padding: 12px 20px;
+            margin: 0;
+            border-radius: 8px 8px 0 0;
+            font-size: 1.4em;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .layout-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .layout-table td {
+            vertical-align: top;
+            padding: 15px;
+        }
+
+        .control-panel {
+            width: 340px;
+            background-color: #fafafa;
+            border-right: 1px solid #ddd;
+            border-bottom-left-radius: 8px;
+        }
+
+        .canvas-panel {
+            background-color: #fff;
+            text-align: center;
+            border-bottom-right-radius: 8px;
+        }
+
+        .section-title {
+            font-weight: bold;
+            color: #4d0e91;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            display: block;
+            border-bottom: 2px solid #e0e0e0;
+            font-size: 1.1em;
+        }
+
+        .input-group {
+            margin-bottom: 8px;
+            font-size: 0.95em;
+            display: flex;
+            align-items: center;
+        }
+        .input-group label {
+            display: inline-block;
+            width: 100px;
+            color: #333;
+        }
+
+        input[type="text"], input[type="number"], select {
+            border: 1px solid #aaa;
+            padding: 4px;
+            border-radius: 3px;
+            width: 70px;
+            text-align: center;
+            font-family: inherit; /* 繼承 Times New Roman/新細明體 */
+        }
+        input[type="color"] {
+            border: 1px solid #aaa;
+            padding: 2px;
+            border-radius: 3px;
+            width: 50px;
+            height: 30px;
+            cursor: pointer;
+            background: #fff;
+        }
+        select {
+            width: 130px; /* 稍微加寬下拉選單 */
+            cursor: pointer;
+        }
+        input[type="text"]:focus, input[type="number"]:focus, select:focus {
+            border-color: #663399;
+            background-color: #f9f0ff;
+            outline: none;
+        }
+
+        input.long-input {
+            width: 190px;
+            text-align: left;
+        }
+
+        input[type="checkbox"] {
+            margin-right: 5px;
+            cursor: pointer;
+        }
+
+        button {
+            font-family: inherit;
+            border: 1px solid #aaa;
+            background: linear-gradient(to bottom, #f0f0f0, #e0e0e0);
+            padding: 5px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            color: #333;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: linear-gradient(to bottom, #e8e8e8, #d0d0d0);
+            border-color: #888;
+        }
+        
+        button.primary {
+            background: #663399;
+            color: white;
+            border: 1px solid #4d0e91;
+            font-weight: bold;
+            padding: 6px 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        button.primary:hover {
+            background: #552b80;
+            transform: translateY(-1px);
+        }
+
+        #data_table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background: #fff;
+            border: 1px solid #ccc;
+        }
+        #data_table th {
+            background: #eee;
+            color: #333;
+            padding: 6px;
+            border-bottom: 1px solid #ccc;
+            font-size: 0.9em;
+        }
+        #data_table td {
+            padding: 4px;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+        }
+        
+        canvas {
+            border: 1px solid #888;
+            background: #fff;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+            cursor: crosshair;
+        }
+        
+        .hint {
+            font-size: 0.8em;
+            color: #666;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body onload="initApp()">
+
+<div id="wrap">
+    <h2 class="header">圖表繪製程式 (教師版)</h2>
+    
+    <table class="layout-table">
+        <tr>
+            <!-- 左側控制面板 -->
+            <td class="control-panel">
+                
+                <span class="section-title">圖表設定</span>
+                <div class="input-group">
+                    <label>圖表標題:</label>
+                    <input type="text" id="graph_title" class="long-input" value="實驗數據圖表" onchange="draw_grid()">
+                </div>
+                <div class="input-group">
+                    <label>數據點樣式:</label>
+                    <select id="point_style" onchange="draw_grid()">
+                        <option value="dot">黑色圓點 (●)</option>
+                        <option value="cross">藍色交叉 (X)</option>
+                        <option value="plus">紅色加號 (+)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>線條顏色:</label>
+                    <input type="color" id="line_color" value="#0000ff" onchange="draw_grid()">
+                </div>
+                
+                <!-- X 軸設定 -->
+                <span class="section-title">X 軸設定 (水平)</span>
+                <div class="input-group">
+                    <label>軸標籤:</label>
+                    <input type="text" id="x_axis" class="long-input" value="時間 (min)" onchange="draw_grid()">
+                </div>
+                <div class="input-group">
+                    <label>範圍 (始/終):</label> 
+                    <input type="number" id="x_start" value="0" step="any" onchange="draw_grid()" style="width: 60px;">
+                    <span style="margin:0 5px;">至</span>
+                    <input type="number" id="x_end" value="60" step="any" onchange="draw_grid()" style="width: 60px;">
+                </div>
+                <div class="input-group">
+                    <label>刻度間距:</label> <input type="number" id="x_scale" value="10" step="any" onchange="draw_grid()">
+                </div>
+                <div class="input-group">
+                    <label>細分格數:</label> <input type="number" id="x_subdiv" value="10" min="1" step="1" onchange="draw_grid()">
+                </div>
+                <div class="input-group">
+                    <label>標籤頻率:</label> 
+                    <input type="number" id="x_label_freq" value="1" min="1" step="1" onchange="draw_grid()">
+                    <span class="hint">(每n大格)</span>
+                </div>
+                <div class="input-group">
+                    <label style="cursor:pointer;" for="x_break">省略符號:</label>
+                    <input type="checkbox" id="x_break" onchange="draw_grid()">
+                </div>
+
+                <!-- Y 軸設定 -->
+                <span class="section-title">Y 軸設定 (垂直)</span>
+                <div class="input-group">
+                    <label>軸標籤:</label>
+                    <input type="text" id="y_axis" class="long-input" value="温度 (°C)" onchange="draw_grid()">
+                </div>
+                <div class="input-group">
+                    <label>範圍 (始/終):</label> 
+                    <input type="number" id="y_start" value="23" step="any" onchange="draw_grid()" style="width: 60px;">
+                    <span style="margin:0 5px;">至</span>
+                    <input type="number" id="y_end" value="33" step="any" onchange="draw_grid()" style="width: 60px;">
+                </div>
+                <div class="input-group">
+                    <label>刻度間距:</label> <input type="number" id="y_scale" value="1" step="any" onchange="draw_grid()">
+                </div>
+                 <div class="input-group">
+                    <label>細分格數:</label> <input type="number" id="y_subdiv" value="10" min="1" step="1" onchange="draw_grid()">
+                </div>
+                <div class="input-group">
+                    <label>標籤頻率:</label> 
+                    <input type="number" id="y_label_freq" value="1" min="1" step="1" onchange="draw_grid()">
+                    <span class="hint">(每n大格)</span>
+                </div>
+                <div class="input-group">
+                    <label style="cursor:pointer;" for="y_break">省略符號:</label>
+                    <input type="checkbox" id="y_break" checked onchange="draw_grid()">
+                </div>
+
+                <span class="section-title">數據輸入</span>
+                <div style="max-height: 180px; overflow-y: auto;">
+                    <table id="data_table">
+                        <thead>
+                            <tr>
+                                <th>X 數值</th>
+                                <th>Y 數值</th>
+                                <th style="width:40px;">刪除</th>
+                            </tr>
+                        </thead>
+                        <tbody id="data_rows">
+                        </tbody>
+                    </table>
+                </div>
+                <div style="margin-top:10px; display:flex; justify-content:space-between;">
+                    <button onclick="addRow()">+ 加入數據</button>
+                    <button onclick="clearData()" style="color:#d9534f;">× 清空數據</button>
+                </div>
+
+                <div style="margin-top: 25px; border-top: 2px solid #ddd; padding-top: 15px; text-align: center;">
+                    <button class="primary" onclick="draw_grid()" style="font-size:1.1em; width: 100%;">重新繪圖</button>
+                    <button onclick="saveImage()" style="margin-top:10px; width: 100%;">下載圖表圖片</button>
+                </div>
+            </td>
+
+            <!-- 右側繪圖區 -->
+            <td class="canvas-panel">
+                <canvas id="graphCanvas" width="650" height="600"></canvas>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<script>
+    // --- 核心邏輯 ---
+    
+    var canvas, ctx;
+    var w = 650;
+    var h = 600;
+    // 邊距
+    var padding = { top: 60, right: 30, bottom: 80, left: 100 };
+    
+    // 全局變數
+    var plotDims = { 
+        width: 0, 
+        height: 0, 
+        cellSize: 0 
+    };
+
+    var dataPoints = [
+        {x: 10, y: 24.5},
+        {x: 20, y: 25.8},
+        {x: 30, y: 27.2},
+        {x: 40, y: 29.5},
+        {x: 50, y: 31.0}
+    ]; 
+
+    function initApp() {
+        canvas = document.getElementById("graphCanvas");
+        ctx = canvas.getContext("2d");
+        renderTable();
+        draw_grid();
+    }
+
+    function getSettings() {
+        return {
+            title: document.getElementById("graph_title").value,
+            pointStyle: document.getElementById("point_style").value,
+            lineColor: document.getElementById("line_color").value, // 新增：讀取線條顏色
+            xLabel: document.getElementById("x_axis").value,
+            xStart: parseFloat(document.getElementById("x_start").value),
+            xEnd: parseFloat(document.getElementById("x_end").value),
+            xScale: parseFloat(document.getElementById("x_scale").value),
+            xSubdiv: parseInt(document.getElementById("x_subdiv").value) || 10,
+            xLabelFreq: parseInt(document.getElementById("x_label_freq").value) || 1,
+            xBreak: document.getElementById("x_break").checked,
+            
+            yLabel: document.getElementById("y_axis").value,
+            yStart: parseFloat(document.getElementById("y_start").value),
+            yEnd: parseFloat(document.getElementById("y_end").value),
+            yScale: parseFloat(document.getElementById("y_scale").value),
+            ySubdiv: parseInt(document.getElementById("y_subdiv").value) || 10,
+            yLabelFreq: parseInt(document.getElementById("y_label_freq").value) || 1,
+            yBreak: document.getElementById("y_break").checked
+        };
+    }
+
+    function calculatePlotDimensions(s) {
+        var availableW = w - padding.left - padding.right;
+        var availableH = h - padding.top - padding.bottom;
+
+        var rangeX = Math.abs(s.xEnd - s.xStart);
+        var rangeY = Math.abs(s.yEnd - s.yStart);
+        
+        var unitsX = rangeX / s.xScale;
+        var unitsY = rangeY / s.yScale;
+
+        if (s.xBreak) unitsX += 1;
+        if (s.yBreak) unitsY += 1;
+
+        if (unitsX <= 0) unitsX = 1;
+        if (unitsY <= 0) unitsY = 1;
+
+        var cellSizeX = availableW / unitsX;
+        var cellSizeY = availableH / unitsY;
+        var finalCellSize = Math.min(cellSizeX, cellSizeY);
+
+        var actualW = finalCellSize * unitsX;
+        var actualH = finalCellSize * unitsY;
+
+        return {
+            width: actualW,
+            height: actualH,
+            cellSize: finalCellSize
+        };
+    }
+
+    function mapX(val, s) {
+        var offsetUnits = (val - s.xStart) / s.xScale;
+        if (s.xBreak) offsetUnits += 1; 
+        return padding.left + offsetUnits * plotDims.cellSize;
+    }
+
+    function mapY(val, s) {
+        var bottomY = h - padding.bottom;
+        var offsetUnits = (val - s.yStart) / s.yScale;
+        if (s.yBreak) offsetUnits += 1; 
+        return bottomY - offsetUnits * plotDims.cellSize;
+    }
+
+    // 主繪圖函數
+    function draw_grid() {
+        var s = getSettings();
+        
+        plotDims = calculatePlotDimensions(s);
+
+        // 1. 清空畫布
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, w, h);
+
+        // 2. 標題 - 字體更新
+        var chartCenterX = padding.left + plotDims.width / 2;
+        ctx.fillStyle = "black";
+        ctx.font = "bold 22px 'Times New Roman', 'PMingLiU'"; 
+        ctx.textAlign = "center";
+        var titleX = (plotDims.width < 200) ? w / 2 : chartCenterX;
+        ctx.fillText(s.title, titleX, 35);
+
+        // 定義邊界
+        var axisOriginX = padding.left;
+        var axisOriginY = h - padding.bottom;
+
+        var visualStartX = axisOriginX;
+        var visualStartY = axisOriginY;
+
+        if (s.xBreak) visualStartX += plotDims.cellSize; 
+        if (s.yBreak) visualStartY -= plotDims.cellSize; 
+
+        var gridEndX = padding.left + plotDims.width;
+        var gridEndY = (h - padding.bottom) - plotDims.height;
+        var arrowExtend = 20;
+
+        // 3. 繪製主軸線
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        // Y軸
+        ctx.moveTo(axisOriginX, axisOriginY);
+        ctx.lineTo(axisOriginX, gridEndY - arrowExtend);
+        // X軸
+        ctx.moveTo(axisOriginX, axisOriginY);
+        ctx.lineTo(gridEndX + arrowExtend, axisOriginY);
+        ctx.stroke();
+
+        // 4. 箭嘴
+        drawArrow(gridEndX + arrowExtend, axisOriginY, 'right');
+        drawArrow(axisOriginX, gridEndY - arrowExtend, 'up');
+
+        // 5. 原點 0 - 字體更新
+        ctx.fillStyle = "black";
+        ctx.font = "14px 'Times New Roman', 'PMingLiU'";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "top"; 
+        ctx.fillText("0", axisOriginX - 5, axisOriginY + 5);
+
+        // 6. 繪製省略符區間的細分網格
+        drawBreakSubdivisions(s, axisOriginX, axisOriginY, plotDims.cellSize, gridEndX, gridEndY);
+
+        // 7. 繪製 Z 省略符
+        drawBreaks(s, axisOriginX, axisOriginY, visualStartX, visualStartY, plotDims.cellSize);
+
+        // 8. 繪製主網格與刻度 - 字體更新
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        ctx.font = "14px 'Times New Roman', 'PMingLiU'";
+
+        // --- X軸刻度 ---
+        if (s.xScale > 0) {
+            var subDivs = s.xSubdiv;
+            var xSubStep = s.xScale / subDivs;
+            
+            var i = 0;
+            while (true) {
+                var x = s.xStart + i * xSubStep;
+                if (x > s.xEnd + (xSubStep / 100)) break;
+
+                var px = mapX(x, s);
+                
+                if (px >= visualStartX - 0.5 && px <= gridEndX + 0.5) {
+                    var isMajor = (i % subDivs === 0);
+                    var tickIndex = Math.round(i / subDivs);
+                    var isLabelLine = isMajor && (tickIndex % s.xLabelFreq === 0);
+
+                    ctx.beginPath();
+                    ctx.moveTo(px, axisOriginY); 
+                    ctx.lineTo(px, gridEndY); 
+
+                    if (isLabelLine) {
+                        ctx.strokeStyle = "#888"; 
+                        ctx.lineWidth = 1.5;
+                    } else if (isMajor) {
+                        ctx.strokeStyle = "#bbb"; 
+                        ctx.lineWidth = 1;
+                    } else {
+                        ctx.strokeStyle = "#e8e8e8"; 
+                        ctx.lineWidth = 0.5;
+                    }
+                    ctx.stroke();
+
+                    // 刻度線
+                    if (isMajor) {
+                        ctx.strokeStyle = "black";
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(px, axisOriginY);
+                        ctx.lineTo(px, axisOriginY + 6);
+                        ctx.stroke();
+
+                        if (isLabelLine) {
+                            var label = Math.round(x * 10000) / 10000;
+                            ctx.fillStyle = "black";
+                            ctx.fillText(label, px, axisOriginY + 10);
+                        }
+                    }
+                }
+                i++;
+            }
+        }
+
+        // --- Y軸刻度 ---
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        
+        if (s.yScale > 0) {
+            var subDivs = s.ySubdiv;
+            var ySubStep = s.yScale / subDivs;
+            
+            var j = 0;
+            while (true) {
+                var y = s.yStart + j * ySubStep;
+                if (y > s.yEnd + (ySubStep / 100)) break;
+
+                var py = mapY(y, s);
+                
+                if (py >= gridEndY - 0.5 && py <= visualStartY + 0.5) {
+                    var isMajor = (j % subDivs === 0);
+                    var tickIndex = Math.round(j / subDivs);
+                    var isLabelLine = isMajor && (tickIndex % s.yLabelFreq === 0);
+
+                    ctx.beginPath();
+                    ctx.moveTo(axisOriginX, py);
+                    ctx.lineTo(gridEndX, py);
+
+                    if (isLabelLine) {
+                        ctx.strokeStyle = "#888";
+                        ctx.lineWidth = 1.5;
+                    } else if (isMajor) {
+                        ctx.strokeStyle = "#bbb";
+                        ctx.lineWidth = 1;
+                    } else {
+                        ctx.strokeStyle = "#e8e8e8";
+                        ctx.lineWidth = 0.5;
+                    }
+                    ctx.stroke();
+
+                    if (isMajor) {
+                        ctx.strokeStyle = "black";
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(axisOriginX, py);
+                        ctx.lineTo(axisOriginX - 6, py);
+                        ctx.stroke();
+
+                        if (isLabelLine) {
+                            var label = Math.round(y * 10000) / 10000;
+                            ctx.fillStyle = "black";
+                            ctx.fillText(label, axisOriginX - 10, py);
+                        }
+                    }
+                }
+                j++;
+            }
+        }
+
+        // 9. 軸標籤 - 字體更新
+        ctx.fillStyle = "black";
+        ctx.textAlign = "center";
+        ctx.font = "bold 16px 'Times New Roman', 'PMingLiU'";
+        
+        // X Label
+        ctx.fillText(s.xLabel, chartCenterX, h - 15);
+        
+        // Y Label
+        ctx.save();
+        ctx.translate(25, axisOriginY - plotDims.height / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText(s.yLabel, 0, 0);
+        ctx.restore();
+
+        // 10. 數據點
+        plotDataPoints(s);
+    }
+
+    function drawArrow(x, y, dir) {
+        ctx.fillStyle = "black";
+        ctx.beginPath();
+        if (dir === 'right') {
+            ctx.moveTo(x, y);
+            ctx.lineTo(x - 10, y - 5);
+            ctx.lineTo(x - 10, y + 5);
+        } else if (dir === 'up') {
+            ctx.moveTo(x, y);
+            ctx.lineTo(x - 5, y + 10);
+            ctx.lineTo(x + 5, y + 10);
+        }
+        ctx.fill();
+    }
+
+    // 繪製省略符區間內的細分網格
+    function drawBreakSubdivisions(s, originX, originY, cellSize, gridEndX, gridEndY) {
+        ctx.lineWidth = 0.5;
+        ctx.strokeStyle = "#e8e8e8";
+
+        // X Break Interval
+        if (s.xBreak) {
+            var step = cellSize / s.xSubdiv;
+            // 畫 1 到 s.xSubdiv - 1 的細線
+            for (var i = 1; i < s.xSubdiv; i++) {
+                var px = originX + i * step;
+                ctx.beginPath();
+                ctx.moveTo(px, originY);
+                ctx.lineTo(px, gridEndY);
+                ctx.stroke();
+            }
+        }
+
+        // Y Break Interval
+        if (s.yBreak) {
+            var step = cellSize / s.ySubdiv;
+            for (var j = 1; j < s.ySubdiv; j++) {
+                var py = originY - j * step;
+                ctx.beginPath();
+                ctx.moveTo(originX, py);
+                ctx.lineTo(gridEndX, py);
+                ctx.stroke();
+            }
+        }
+    }
+
+    // 繪製 Z 省略符號
+    function drawBreaks(s, axisOriginX, axisOriginY, visualStartX, visualStartY, cellSize) {
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 2;
+        var zWidth = 8; 
+        var zHeight = 6;
+        
+        // X Break
+        if (s.xBreak) {
+            var centerX = (axisOriginX + visualStartX) / 2;
+            var zLeft = centerX - zWidth/2;
+            var zRight = centerX + zWidth/2;
+
+            // Z
+            ctx.beginPath();
+            ctx.moveTo(zLeft, axisOriginY);
+            ctx.lineTo(zLeft + zWidth/3, axisOriginY + zHeight); 
+            ctx.lineTo(zRight - zWidth/3, axisOriginY - zHeight); 
+            ctx.lineTo(zRight, axisOriginY); 
+            ctx.stroke();
+        }
+
+        // Y Break
+        if (s.yBreak) {
+            var centerY = (axisOriginY + visualStartY) / 2;
+            var zTop = centerY - zWidth/2; 
+            var zBottom = centerY + zWidth/2;
+
+            // Z (N形)
+            ctx.beginPath();
+            ctx.moveTo(axisOriginX, zBottom);
+            ctx.lineTo(axisOriginX - zHeight, zBottom - zWidth/3); 
+            ctx.lineTo(axisOriginX + zHeight, zTop + zWidth/3);   
+            ctx.lineTo(axisOriginX, zTop); 
+            ctx.stroke();
+        }
+    }
+
+    function plotDataPoints(s) {
+        // Change: Points selection logic
+        
+        var rows = document.getElementById("data_rows").children;
+        var points = [];
+
+        // Collect points
+        for (var i = 0; i < rows.length; i++) {
+            var inputs = rows[i].getElementsByTagName("input");
+            var x = parseFloat(inputs[0].value);
+            var y = parseFloat(inputs[1].value);
+
+            if (!isNaN(x) && !isNaN(y)) {
+                points.push({x: x, y: y});
+            }
+        }
+
+        // Sort for line connecting
+        points.sort(function(a, b) { return a.x - b.x; });
+
+        // 1. Draw Line (Using Selected Color)
+        if (points.length > 1) {
+            ctx.strokeStyle = s.lineColor; // 使用用戶選擇的顏色
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            var p0 = points[0];
+            ctx.moveTo(mapX(p0.x, s), mapY(p0.y, s));
+            for(var k=1; k<points.length; k++) {
+                ctx.lineTo(mapX(points[k].x, s), mapY(points[k].y, s));
+            }
+            ctx.stroke();
+        }
+
+        // 2. Draw Points based on selection
+        for (var k=0; k<points.length; k++) {
+             var px = mapX(points[k].x, s);
+             var py = mapY(points[k].y, s);
+
+             ctx.beginPath();
+             
+             if (s.pointStyle === 'cross') {
+                 // Blue Cross
+                 ctx.strokeStyle = "blue";
+                 ctx.lineWidth = 2;
+                 var size = 5;
+                 ctx.moveTo(px - size, py - size);
+                 ctx.lineTo(px + size, py + size);
+                 ctx.moveTo(px + size, py - size);
+                 ctx.lineTo(px - size, py + size);
+                 ctx.stroke();
+             } else if (s.pointStyle === 'plus') {
+                 // Red Plus
+                 ctx.strokeStyle = "red";
+                 ctx.lineWidth = 2;
+                 var size = 5;
+                 ctx.moveTo(px - size, py);
+                 ctx.lineTo(px + size, py);
+                 ctx.moveTo(px, py - size);
+                 ctx.lineTo(px, py + size);
+                 ctx.stroke();
+             } else {
+                 // Default: Black Dot
+                 ctx.fillStyle = "black";
+                 ctx.arc(px, py, 3, 0, 2 * Math.PI); 
+                 ctx.fill();
+             }
+        }
+    }
+
+    // --- 表格操作 ---
+    function renderTable() {
+        var tbody = document.getElementById("data_rows");
+        tbody.innerHTML = "";
+        dataPoints.forEach(function(pt) {
+            addTableRow(pt.x, pt.y);
+        });
+        if (dataPoints.length === 0) addRow();
+    }
+
+    function addRow() {
+        addTableRow("", "");
+    }
+
+    function addTableRow(xVal, yVal) {
+        var tbody = document.getElementById("data_rows");
+        var tr = document.createElement("tr");
+        
+        tr.innerHTML = `
+            <td><input type="number" value="${xVal}" step="any" onchange="draw_grid()" placeholder="X"></td>
+            <td><input type="number" value="${yVal}" step="any" onchange="draw_grid()" placeholder="Y"></td>
+            <td><button onclick="deleteRow(this)" style="color:#d9534f; border:none; background:none; font-weight:bold; font-size:1.2em;">&times;</button></td>
+        `;
+        tbody.appendChild(tr);
+    }
+
+    function deleteRow(btn) {
+        var row = btn.parentNode.parentNode;
+        row.parentNode.removeChild(row);
+        draw_grid();
+    }
+
+    function clearData() {
+        if(confirm("確定要清空所有數據嗎？")) {
+            document.getElementById("data_rows").innerHTML = "";
+            addRow(); 
+            draw_grid();
+        }
+    }
+
+    function saveImage() {
+        var link = document.createElement('a');
+        link.download = 'graph_export.png';
+        link.href = canvas.toDataURL();
+        link.click();
+    }
+</script>
+
+</body>
+</html>
