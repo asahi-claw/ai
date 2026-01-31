@@ -108,6 +108,7 @@
             <h2 id="chineseMeaning" class="text-4xl md:text-5xl font-black mb-10 text-indigo-900 funny-font tracking-tight">
                 Loading...
             </h2>
+            
 
             <!-- Dynamic Word Container -->
             <div id="wordContainer" class="flex items-center justify-center gap-1.5 mb-12 overflow-x-auto no-scrollbar whitespace-nowrap px-2 py-4">
@@ -122,6 +123,8 @@
                 <button onclick="game.skipWord()" class="flex-1 bg-blue-400 text-white py-4 rounded-2xl border-4 border-black neo-shadow-sm neo-button font-black text-xl flex items-center justify-center gap-2">
                     ⏭️ SKIP WORD
                 </button>
+                <button onclick="game.speakWord()"class="flex-1 bg-blue-400 text-white py-4 rounded-2xl border-4 border-black neo-shadow-sm neo-button font-black text-xl flex items-center justify-center gap-2">
+                    🔊PLAY</button>
             </div>
         </div>
     </div>
@@ -223,7 +226,23 @@
                 document.getElementById('chineseMeaning').textContent = this.currentWord.zh;
                 this.renderWordBoxes();
             }
+             speakWord() {
+                // 1. Check if we have a current word
+                if (!this.currentWord || !this.currentWord.en) return;
 
+                // 2. Cancel any currently playing speech (prevents overlapping audio)
+                window.speechSynthesis.cancel();
+
+                // 3. Create the utterance using the SPECIFIC English word (this.currentWord.en)
+                const utterance = new SpeechSynthesisUtterance(this.currentWord.en);
+                
+                // 4. Settings
+                utterance.lang = 'en-GB'; // Use 'en-GB' for British accent
+                utterance.rate = 0.8;     // Slightly slower is better for learning
+                
+                // 5. Speak
+                window.speechSynthesis.speak(utterance);
+            }
             renderWordBoxes() {
                 const container = document.getElementById('wordContainer');
                 container.innerHTML = '';
