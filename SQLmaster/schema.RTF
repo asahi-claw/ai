@@ -1,0 +1,23 @@
+表格: houses (社)
+  id (整數) - 主鍵
+  name (文字)
+  color (文字)
+  master_teacher (文字)
+
+表格: students (學生)
+  id (整數) - 主鍵
+  name (文字)
+  gender (文字)
+  class (文字)
+  house_id (整數) - 外鍵 (關聯至 houses.id)
+
+表格: subjects (科目)
+  code (文字) - 主鍵
+  name (文字)
+  type (文字)
+
+表格: results (成績)
+  student_id (整數) - 外鍵 (關聯至 students.id)
+  subject_code (文字) - 外鍵 (關聯至 subjects.code)
+  score (整數)
+  * 複合主鍵: (student_id, subject_code)
