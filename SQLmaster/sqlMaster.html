@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL MASTER | CampusConnect</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- CodeMirror for SQL Editor -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/sql/sql.min.js"></script>
+
+    <!-- SQL.js (SQLite for Browser) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+
+        /* Overlay Menu Transitions */
+        .sidebar-overlay { transition: opacity 0.3s ease-in-out, visibility 0.3s; }
+        .sidebar-content { transition: transform 0.3s ease-in-out; transform: translateX(-100%); }
+        .sidebar-open .sidebar-content { transform: translateX(0); }
+        .sidebar-open .sidebar-overlay { opacity: 1; visibility: visible; pointer-events: auto; }
+        
+        /* CodeMirror Adjustments */
+        .CodeMirror { height: 100%; font-family: 'Fira Code', monospace; font-size: 14px; border-radius: 0.5rem; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-gray-800 border-b border-gray-700 h-16 flex items-center justify-between px-4 shrink-0 z-30 relative">
+        <div class="flex items-center gap-4">
+            <button id="menuBtn" class="p-2 hover:bg-gray-700 rounded-lg transition-colors">
+                <i data-lucide="menu" class="w-6 h-6 text-blue-400"></i>
+            </button>
+            <div class="flex items-center gap-2">
+                <i data-lucide="database" class="w-6 h-6 text-blue-500"></i>
+                <h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                    SQL MASTER
+                </h1>
+            </div>
+            
+            <a href="https://docs.google.com/gview?url=https://learning-is-tough-but-so-are-you.github.io/ai/SQLmaster/schema.rtf&embedded=true" target="_blank" class="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:bg-indigo-600 transition-colors">
+                數據庫模式
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </a>
+           
+        </div>
+    </header>
+
+    <!-- Overlay Sidebar -->
+    <div id="sidebarContainer" class="fixed inset-0 z-40 pointer-events-none">
+        <div id="sidebarBackdrop" class="sidebar-overlay absolute inset-0 bg-black/50 opacity-0 invisible backdrop-blur-sm pointer-events-none"></div>
+        <aside class="sidebar-content absolute top-0 left-0 bottom-0 w-72 bg-gray-800 border-r border-gray-700 shadow-2xl flex flex-col pointer-events-auto pt-16">
+            <div class="p-4 border-b border-gray-700">
+                <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">Modules</h2>
+                <div class="relative">
+                    <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-gray-500"></i>
+                    <input type="text" placeholder="Search topics..." class="w-full bg-gray-900 border border-gray-700 rounded-lg py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-blue-500">
+                </div>
+            </div>
+            <nav id="moduleList" class="flex-1 overflow-y-auto p-2 space-y-1"></nav>
+            
+        </aside>
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col md:flex-row overflow-hidden relative z-0">
+        <!-- Left Panel: Learning Content -->
+        <section class="w-full md:w-1/3 border-r border-gray-700 flex flex-col bg-gray-800/30 overflow-hidden">
+            <div class="p-6 overflow-y-auto flex-1 custom-scrollbar">
+                <div id="contentArea">
+                    <div class="animate-pulse space-y-4">
+                        <div class="h-4 bg-gray-700 rounded w-3/4"></div>
+                        <div class="h-4 bg-gray-700 rounded"></div>
+                        <div class="h-4 bg-gray-700 rounded w-5/6"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 border-t border-gray-700 bg-gray-800 flex justify-between">
+                <button id="prevBtn" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                    <i data-lucide="chevron-left" class="w-4 h-4"></i> Prev
+                </button>
+                <button id="nextBtn" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                    Next <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- Right Panel: Editor & Results -->
+        <section class="w-full md:w-2/3 flex flex-col bg-gray-900">
+            <!-- SQL Editor -->
+            <div class="h-1/2 flex flex-col border-b border-gray-700">
+                <div class="bg-gray-800 px-4 py-2 flex items-center justify-between border-b border-gray-700">
+                    <span class="text-sm font-medium text-gray-300 flex items-center gap-2">
+                        <i data-lucide="code-2" class="w-4 h-4 text-green-400"></i> SQL Editor
+                    </span>
+                    <div class="flex items-center gap-3">
+                        <span id="dbStatus" class="text-xs text-yellow-500 flex items-center gap-1">
+                            <i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Loading DB...
+                        </span>
+                        <button id="runBtn" disabled class="flex items-center gap-2 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm rounded transition-colors shadow-lg shadow-green-900/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i data-lucide="play" class="w-3 h-3 fill-current"></i> Run Query
+                        </button>
+                    </div>
+                </div>
+                <div class="flex-1 relative">
+                    <textarea id="sqlEditor"></textarea>
+                </div>
+            </div>
+
+            <!-- Results Area -->
+            <div class="h-1/2 flex flex-col bg-gray-900">
+                <div class="bg-gray-800 px-4 py-2 border-b border-gray-700 flex justify-between items-center">
+                    <span class="text-sm font-medium text-gray-300 flex items-center gap-2">
+                        <i data-lucide="table" class="w-4 h-4 text-blue-400"></i> Query Results
+                    </span>
+                    <span id="executionTime" class="text-xs text-gray-500"></span>
+                </div>
+                <div id="resultArea" class="flex-1 p-4 overflow-auto font-mono text-sm">
+                    <div class="text-gray-500 italic text-center mt-10">
+                        Waiting for database...
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="sql_modules.js"></script>
+
+    <script>
+        class SQLMasterApp {
+            constructor() {
+                this.db = typeof SQL_MODULES_DB !== 'undefined' ? SQL_MODULES_DB : [];
+                this.currentIndex = 0;
+                this.editor = null;
+                this.isMenuOpen = false;
+                this.sqlDB = null; // The actual SQLite database instance
+                
+                this.init();
+            }
+
+            async init() {
+                this.initEditor();
+                this.initUI();
+                this.renderSidebar();
+                this.loadModule(0);
+                
+                // Initialize the Real Database
+                await this.initDatabase();
+            }
+
+            initEditor() {
+                this.editor = CodeMirror.fromTextArea(document.getElementById('sqlEditor'), {
+                    mode: 'text/x-sql',
+                    theme: 'dracula',
+                    lineNumbers: true,
+                    indentWithTabs: true,
+                    smartIndent: true,
+                    matchBrackets: true,
+                    autofocus: true
+                });
+                this.editor.setValue("SELECT * FROM students;");
+            }
+
+            async initDatabase() {
+                try {
+                    // Configure sql.js to load the wasm file from CDN
+                    const config = {
+                        locateFile: filename => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${filename}`
+                    };
+                    
+                    const SQL = await initSqlJs(config);
+                    
+                    // Create a database in memory
+                    this.sqlDB = new SQL.Database();
+                    
+                    // Seed the database with data
+                    this.seedDatabase();
+
+                    // Update UI
+                    const dbStatus = document.getElementById('dbStatus');
+                    dbStatus.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i> DB Ready';
+                    dbStatus.className = "text-xs text-green-400 flex items-center gap-1";
+                    
+                    const runBtn = document.getElementById('runBtn');
+                    runBtn.disabled = false;
+                    
+                    const resultArea = document.getElementById('resultArea');
+                    resultArea.innerHTML = `<div class="text-gray-500 italic text-center mt-10">Database ready. Run a query to see results.</div>`;
+                    
+                    lucide.createIcons();
+
+                } catch (err) {
+                    console.error("Failed to load SQL.js", err);
+                    document.getElementById('dbStatus').textContent = "DB Error";
+                    document.getElementById('dbStatus').className = "text-xs text-red-500";
+                }
+            }
+            
+            seedDatabase() {
+                
+                const seedSql = `
+                    -- 1. Create Houses Table (社)
+                    CREATE TABLE houses (
+                        id INTEGER PRIMARY KEY,
+                        name TEXT,
+                        color TEXT,
+                        master_teacher TEXT
+                    );
+
+                    INSERT INTO houses VALUES (1, 'Red House (紅社)', 'Red', 'Mr. Chan');
+                    INSERT INTO houses VALUES (2, 'Blue House (藍社)', 'Blue', 'Ms. Lee');
+                    INSERT INTO houses VALUES (3, 'Yellow House (黃社)', 'Yellow', 'Mr. Wong');
+                    INSERT INTO houses VALUES (4, 'Green House (綠社)', 'Green', 'Ms. Ho');
+
+                    -- 2. Create Students Table (學生)
+                    CREATE TABLE students (
+                        id INTEGER PRIMARY KEY,
+                        name TEXT,
+                        gender TEXT,
+                        class TEXT, -- e.g., '6A', '6B'
+                        house_id INTEGER -- Foreign Key to houses
+                    );
+
+                    -- 6A Students
+                    INSERT INTO students VALUES (101, 'Chan Tai Man', 'M', '6A', 1);
+                    INSERT INTO students VALUES (102, 'Wong Siu Yee', 'F', '6A', 2);
+                    INSERT INTO students VALUES (103, 'Lee Ka Ho', 'M', '6A', 1);
+                    INSERT INTO students VALUES (104, 'Cheung Wai Ling', 'F', '6A', 3);
+                    
+                    -- 6B Students
+                    INSERT INTO students VALUES (105, 'Lau Kin Pong', 'M', '6B', 4);
+                    INSERT INTO students VALUES (106, 'Ng Mei Ling', 'F', '6B', 2);
+                    INSERT INTO students VALUES (107, 'Ho Kwok Keung', 'M', '6B', 3);
+                    
+                    -- Transfer Student (No House - Good for LEFT JOIN)
+                    INSERT INTO students VALUES (108, 'Yeung Yat Long', 'M', '6B', NULL);
+
+                    -- 3. Create Subjects Table (科目)
+                    CREATE TABLE subjects (
+                        code TEXT PRIMARY KEY,
+                        name TEXT,
+                        type TEXT -- 'Core' (核心) or 'Elective' (選修)
+                    );
+
+                    INSERT INTO subjects VALUES ('ENG', 'English Language', 'Core');
+                    INSERT INTO subjects VALUES ('CHI', 'Chinese Language', 'Core');
+                    INSERT INTO subjects VALUES ('MATH', 'Mathematics', 'Core');
+                    INSERT INTO subjects VALUES ('ICT', 'Info & Comm Tech', 'Elective');
+                    INSERT INTO subjects VALUES ('BAFS', 'Business (BAFS)', 'Elective');
+                    INSERT INTO subjects VALUES ('PHY', 'Physics', 'Elective');
+
+                    -- 4. Create Exam Results Table (成績 - The Junction Table)
+                    CREATE TABLE results (
+                        student_id INTEGER,
+                        subject_code TEXT,
+                        score INTEGER,
+                        PRIMARY KEY (student_id, subject_code)
+                    );
+
+                    -- Chan Tai Man (101) - Good student
+                    INSERT INTO results VALUES (101, 'ENG', 85);
+                    INSERT INTO results VALUES (101, 'MATH', 92);
+                    INSERT INTO results VALUES (101, 'ICT', 88);
+
+                    -- Wong Siu Yee (102) - Arts student
+                    INSERT INTO results VALUES (102, 'ENG', 95);
+                    INSERT INTO results VALUES (102, 'CHI', 98);
+                    INSERT INTO results VALUES (102, 'BAFS', 76);
+
+                    -- Lee Ka Ho (103) - Struggling
+                    INSERT INTO results VALUES (103, 'ENG', 45);
+                    INSERT INTO results VALUES (103, 'MATH', 52);
+                    INSERT INTO results VALUES (103, 'PHY', 48);
+
+                    -- Cheung Wai Ling (104)
+                    INSERT INTO results VALUES (104, 'MATH', 88);
+                    INSERT INTO results VALUES (104, 'ICT', 95);
+
+                    -- Lau Kin Pong (105)
+                    INSERT INTO results VALUES (105, 'CHI', 82);
+                    INSERT INTO results VALUES (105, 'BAFS', 65);
+
+                    -- Ng Mei Ling (106)
+                    INSERT INTO results VALUES (106, 'ENG', 70);
+                    INSERT INTO results VALUES (106, 'ICT', 72);
+                    
+                    -- Yeung Yat Long (108) - New student, no results yet (Good for NOT IN or NOT EXISTS)
+                `;
+                this.sqlDB.run(seedSql);
+            }
+
+            initUI() {
+                // Menu Toggle
+                const menuBtn = document.getElementById('menuBtn');
+                const sidebarContainer = document.getElementById('sidebarContainer');
+                const backdrop = document.getElementById('sidebarBackdrop');
+
+                const OpenMenu = () => {
+                    this.isMenuOpen = true;
+                    sidebarContainer.classList.toggle('sidebar-open', true);
+                };
+                const CloseMenu = () => {
+                    this.isMenuOpen = true;
+                    sidebarContainer.classList.toggle('sidebar-open', false);
+                };
+                menuBtn.addEventListener('click', OpenMenu);
+                backdrop.addEventListener('click', CloseMenu);
+
+                // Navigation
+                document.getElementById('prevBtn').addEventListener('click', () => this.navigate(-1));
+                document.getElementById('nextBtn').addEventListener('click', () => this.navigate(1));
+
+                // Run Button
+                document.getElementById('runBtn').addEventListener('click', () => this.runQuery());
+            }
+
+            renderSidebar() {
+                const list = document.getElementById('moduleList');
+                if (!this.db.length) return;
+                
+                list.innerHTML = this.db.map((module, index) => `
+                    <button onclick="app.loadModule(${index})" 
+                        class="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-3
+                        ${index === this.currentIndex ? 'bg-blue-600/20 text-blue-400 border border-blue-600/30' : 'text-gray-400 hover:bg-gray-700 hover:text-white'}">
+                        <span class="flex-shrink-0 w-6 h-6 rounded bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-400 border border-gray-600">
+                            ${index}
+                        </span>
+                        <span class="truncate">${module.title}</span>
+                        
+                    </button>
+                `).join('');
+                lucide.createIcons();
+                const CloseMenu = () => {
+                    this.isMenuOpen = true;
+                    sidebarContainer.classList.toggle('sidebar-open', false);
+                };
+
+                list.addEventListener('click', CloseMenu);
+            }
+
+            loadModule(index) {
+                if (index < 0 || index >= this.db.length) return;
+                this.currentIndex = index;
+                const module = this.db[index];
+                
+                const contentHtml = `
+                    <div class="mb-6">
+                        <span class="text-blue-400 text-sm font-bold tracking-wider uppercase mb-2 block">Chapter ${index}</span>
+                        <h2 class="text-3xl font-bold text-white mb-4">${module.title}</h2>
+                        <p class="text-gray-300 leading-relaxed text-lg mb-6">${module.description}</p>
+                        
+                        <div class="bg-gray-900/50 rounded-xl p-4 border border-gray-700 mb-6">
+                            <h3 class="text-sm font-semibold text-gray-400 uppercase mb-3 flex items-center gap-2">
+                                <i data-lucide="key" class="w-4 h-4"></i> Keywords
+                            </h3>
+                            <div class="flex flex-wrap gap-2">
+                                ${module.keywords.map(k => `
+                                    <span class="px-2 py-1 bg-blue-900/30 text-blue-300 border border-blue-800 rounded text-sm font-mono">${k}</span>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-5 border-l-4 border-blue-500 shadow-lg">
+                            <h3 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                                <i data-lucide="target" class="w-5 h-5 text-blue-400"></i> Your Task
+                            </h3>
+                            <p class="text-gray-300">${module.task}</p>
+                            ${module.hint ? `
+                                <div class="mt-3 pt-3 border-t border-gray-700">
+                                    <p class="text-sm text-gray-500 italic flex items-center gap-1">
+                                        <i data-lucide="lightbulb" class="w-3 h-3"></i> Hint: ${module.hint}
+                                    </p>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('contentArea').innerHTML = contentHtml;
+                
+                document.getElementById('prevBtn').disabled = index === 0;
+                document.getElementById('nextBtn').disabled = index === this.db.length - 1;
+
+                if(window.innerWidth < 768) {
+                    document.getElementById('sidebarContainer').classList.remove('sidebar-open');
+                    this.isMenuOpen = false;
+                }
+                this.renderSidebar();
+                lucide.createIcons();
+            }
+
+            navigate(direction) {
+                this.loadModule(this.currentIndex + direction);
+            }
+
+            runQuery() {
+                if (!this.sqlDB) return;
+
+                const userQuery = this.editor.getValue().trim();
+                const resultArea = document.getElementById('resultArea');
+                const timeDisplay = document.getElementById('executionTime');
+                
+                resultArea.innerHTML = '';
+                timeDisplay.textContent = 'Executing...';
+
+                const startTime = performance.now();
+
+                try {
+                    // EXECUTE ACTUAL SQL
+                    // .exec() returns an array of result objects: [{columns:[], values:[[]]}]
+                    const results = this.sqlDB.exec(userQuery);
+                    const endTime = performance.now();
+                    const duration = (endTime - startTime).toFixed(2);
+                    timeDisplay.textContent = `${duration}ms`;
+
+                    if (results.length === 0) {
+                        // Query ran but returned no data (e.g. INSERT, UPDATE, or empty SELECT)
+                        resultArea.innerHTML = `
+                            <div class="bg-blue-900/20 border border-blue-800 p-4 rounded-lg">
+                                <div class="flex items-center gap-2 text-blue-400 mb-2 font-bold">
+                                    <i data-lucide="info" class="w-5 h-5"></i> Query Executed
+                                </div>
+                                <p class="text-blue-200/80">Command executed successfully. No rows returned.</p>
+                            </div>
+                        `;
+                    } else {
+                        // Render Table
+                        const data = results[0];
+                        this.renderTable(data, resultArea);
+                    }
+
+                } catch (err) {
+                    // Handle SQL Syntax Errors
+                    timeDisplay.textContent = 'Error';
+                    resultArea.innerHTML = `
+                        <div class="bg-red-900/20 border border-red-800 p-4 rounded-lg">
+                            <div class="flex items-center gap-2 text-red-400 mb-2 font-bold">
+                                <i data-lucide="x-circle" class="w-5 h-5"></i> SQL Error
+                            </div>
+                            <p class="text-red-200/80 font-mono">${err.message}</p>
+                        </div>
+                    `;
+                }
+                lucide.createIcons();
+            }
+
+            renderTable(data, container) {
+                const table = document.createElement('table');
+                table.className = "w-full text-left border-collapse min-w-max";
+
+                // Header
+                const thead = document.createElement('thead');
+                thead.innerHTML = `
+                    <tr class="border-b border-gray-700 text-gray-400 bg-gray-800/50">
+                        ${data.columns.map(col => `<th class="p-3 font-semibold">${col}</th>`).join('')}
+                    </tr>
+                `;
+                table.appendChild(thead);
+
+                // Body
+                const tbody = document.createElement('tbody');
+                tbody.className = "text-gray-300";
+                
+                data.values.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.className = "border-b border-gray-800 hover:bg-gray-800/50 transition-colors";
+                    tr.innerHTML = row.map(cell => `
+                        <td class="p-3 ${typeof cell === 'number' ? 'text-blue-400 font-mono' : ''}">${cell}</td>
+                    `).join('');
+                    tbody.appendChild(tr);
+                });
+                table.appendChild(tbody);
+
+                container.appendChild(table);
+            }
+        }
+
+        const app = new SQLMasterApp();
+    </script>
+</body>
+</html>
