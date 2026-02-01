@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>圖表繪製程式 (教師版) - 線條顏色版</title>
+    <title>圖表繪製程式</title>
     <style>
         /* --- 樣式設定 --- */
         body {
-            /* 字體設定：英文 Times New Roman 優先，中文 新細明體 其次 */
             font-family: "Times New Roman", "PMingLiU", "新細明體", serif;
             background: #FFFDE4;
             color: #1d1d1d;
@@ -76,6 +75,7 @@
             font-size: 0.95em;
             display: flex;
             align-items: center;
+            flex-wrap: wrap; 
         }
         .input-group label {
             display: inline-block;
@@ -89,7 +89,7 @@
             border-radius: 3px;
             width: 70px;
             text-align: center;
-            font-family: inherit; /* 繼承 Times New Roman/新細明體 */
+            font-family: inherit; 
         }
         input[type="color"] {
             border: 1px solid #aaa;
@@ -101,7 +101,7 @@
             background: #fff;
         }
         select {
-            width: 130px; /* 稍微加寬下拉選單 */
+            width: 130px;
             cursor: pointer;
         }
         input[type="text"]:focus, input[type="number"]:focus, select:focus {
@@ -149,6 +149,39 @@
             transform: translateY(-1px);
         }
 
+        .format-btn {
+            padding: 2px 6px;
+            margin: 0 1px;
+            font-size: 0.8em;
+            background: #eee;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            cursor: pointer;
+            min-width: 24px;
+        }
+        .format-btn:hover { background: #ddd; }
+        .format-toolbar {
+            width: 100%;
+            margin-top: 2px;
+            padding-left: 100px;
+            display: flex;
+            gap: 2px;
+        }
+
+        .dataset-btn {
+            padding: 4px 8px;
+            margin: 2px;
+            border: 1px solid #ccc;
+            background: #fff;
+            min-width: 30px;
+        }
+        .dataset-btn.active {
+            background: #663399;
+            color: white;
+            border-color: #4d0e91;
+            font-weight: bold;
+        }
+
         #data_table {
             width: 100%;
             border-collapse: collapse;
@@ -167,6 +200,18 @@
             padding: 4px;
             border-bottom: 1px solid #eee;
             text-align: center;
+        }
+
+        .tangent-list-item {
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            padding: 5px;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
         canvas {
@@ -193,82 +238,115 @@
             <!-- 左側控制面板 -->
             <td class="control-panel">
                 
-                <span class="section-title">圖表設定</span>
+                <span class="section-title">圖表設定 (Global)</span>
                 <div class="input-group">
                     <label>圖表標題:</label>
-                    <input type="text" id="graph_title" class="long-input" value="實驗數據圖表" onchange="draw_grid()">
+                    <input type="text" id="graph_title" class="long-input" value="函數圖表 (負數範圍)" onchange="draw_grid()">
+                    <div class="format-toolbar">
+                        <button class="format-btn" onclick="insertTag('graph_title', 'b')" title="粗體"><b>B</b></button>
+                        <button class="format-btn" onclick="insertTag('graph_title', 'i')" title="斜體"><i>I</i></button>
+                        <button class="format-btn" onclick="insertTag('graph_title', 'u')" title="底線"><u>U</u></button>
+                        <button class="format-btn" onclick="insertTag('graph_title', 'sup')" title="上標">X<sup>2</sup></button>
+                        <button class="format-btn" onclick="insertTag('graph_title', 'sub')" title="下標">X<sub>2</sub></button>
+                    </div>
+                </div>
+
+                <!-- 數據組管理 -->
+                <span class="section-title">數據組設定 (Data Sets)</span>
+                <div style="margin-bottom: 5px; display:flex; gap:5px; flex-wrap:wrap;" id="dataset_list">
+                </div>
+                <div style="text-align:right; margin-bottom:10px; border-bottom:1px dashed #ccc; padding-bottom:10px;">
+                    <button onclick="addDataset()" style="font-size:0.8em;">+ 新增</button>
+                    <button onclick="removeDataset()" style="font-size:0.8em; color:#d9534f;">- 刪除</button>
+                </div>
+
+                <!-- 當前數據組設定 -->
+                <div class="input-group">
+                    <label>線條名稱:</label>
+                    <input type="text" id="ds_name" class="long-input" onchange="updateDatasetMeta()">
+                </div>
+                <div class="input-group">
+                    <label>線條種類:</label>
+                    <select id="line_type" onchange="updateDatasetMeta()">
+                        <option value="straight">折線 (Straight)</option>
+                        <option value="curve">平滑曲線 (Natural Spline)</option>
+                        <option value="trendline">趨勢線 (Linear)</option>
+                    </select>
                 </div>
                 <div class="input-group">
                     <label>數據點樣式:</label>
-                    <select id="point_style" onchange="draw_grid()">
+                    <select id="point_style" onchange="updateDatasetMeta()">
                         <option value="dot">黑色圓點 (●)</option>
                         <option value="cross">藍色交叉 (X)</option>
                         <option value="plus">紅色加號 (+)</option>
                     </select>
                 </div>
+                <!-- 新增：顯示坐標點 -->
+                <div class="input-group">
+                    <label style="cursor:pointer;" for="show_points">顯示坐標點:</label>
+                    <input type="checkbox" id="show_points" checked onchange="updateDatasetMeta()">
+                </div>
                 <div class="input-group">
                     <label>線條顏色:</label>
-                    <input type="color" id="line_color" value="#0000ff" onchange="draw_grid()">
+                    <input type="color" id="line_color" onchange="updateDatasetMeta()">
                 </div>
                 
                 <!-- X 軸設定 -->
                 <span class="section-title">X 軸設定 (水平)</span>
                 <div class="input-group">
                     <label>軸標籤:</label>
-                    <input type="text" id="x_axis" class="long-input" value="時間 (min)" onchange="draw_grid()">
+                    <input type="text" id="x_axis" class="long-input" value="X 軸" onchange="draw_grid()">
                 </div>
                 <div class="input-group">
                     <label>範圍 (始/終):</label> 
-                    <input type="number" id="x_start" value="0" step="any" onchange="draw_grid()" style="width: 60px;">
+                    <input type="number" id="x_start" value="-30" step="any" onchange="draw_grid()" style="width: 60px;">
                     <span style="margin:0 5px;">至</span>
-                    <input type="number" id="x_end" value="60" step="any" onchange="draw_grid()" style="width: 60px;">
+                    <input type="number" id="x_end" value="-10" step="any" onchange="draw_grid()" style="width: 60px;">
                 </div>
                 <div class="input-group">
-                    <label>刻度間距:</label> <input type="number" id="x_scale" value="10" step="any" onchange="draw_grid()">
+                    <label>刻度間距:</label> <input type="number" id="x_scale" value="5" step="any" onchange="draw_grid()">
                 </div>
                 <div class="input-group">
-                    <label>細分格數:</label> <input type="number" id="x_subdiv" value="10" min="1" step="1" onchange="draw_grid()">
+                    <label>細分格數:</label> <input type="number" id="x_subdiv" value="5" min="1" step="1" onchange="draw_grid()">
                 </div>
                 <div class="input-group">
                     <label>標籤頻率:</label> 
                     <input type="number" id="x_label_freq" value="1" min="1" step="1" onchange="draw_grid()">
-                    <span class="hint">(每n大格)</span>
                 </div>
                 <div class="input-group">
                     <label style="cursor:pointer;" for="x_break">省略符號:</label>
-                    <input type="checkbox" id="x_break" onchange="draw_grid()">
+                    <input type="checkbox" id="x_break" checked onchange="draw_grid()">
                 </div>
 
                 <!-- Y 軸設定 -->
                 <span class="section-title">Y 軸設定 (垂直)</span>
                 <div class="input-group">
                     <label>軸標籤:</label>
-                    <input type="text" id="y_axis" class="long-input" value="温度 (°C)" onchange="draw_grid()">
+                    <input type="text" id="y_axis" class="long-input" value="Y 軸" onchange="draw_grid()">
                 </div>
                 <div class="input-group">
                     <label>範圍 (始/終):</label> 
-                    <input type="number" id="y_start" value="23" step="any" onchange="draw_grid()" style="width: 60px;">
+                    <input type="number" id="y_start" value="-0.03" step="any" onchange="draw_grid()" style="width: 60px;">
                     <span style="margin:0 5px;">至</span>
-                    <input type="number" id="y_end" value="33" step="any" onchange="draw_grid()" style="width: 60px;">
+                    <input type="number" id="y_end" value="-0.01" step="any" onchange="draw_grid()" style="width: 60px;">
                 </div>
                 <div class="input-group">
-                    <label>刻度間距:</label> <input type="number" id="y_scale" value="1" step="any" onchange="draw_grid()">
+                    <label>刻度間距:</label> <input type="number" id="y_scale" value="0.005" step="any" onchange="draw_grid()">
                 </div>
                  <div class="input-group">
-                    <label>細分格數:</label> <input type="number" id="y_subdiv" value="10" min="1" step="1" onchange="draw_grid()">
+                    <label>細分格數:</label> <input type="number" id="y_subdiv" value="5" min="1" step="1" onchange="draw_grid()">
                 </div>
                 <div class="input-group">
                     <label>標籤頻率:</label> 
                     <input type="number" id="y_label_freq" value="1" min="1" step="1" onchange="draw_grid()">
-                    <span class="hint">(每n大格)</span>
                 </div>
                 <div class="input-group">
                     <label style="cursor:pointer;" for="y_break">省略符號:</label>
-                    <input type="checkbox" id="y_break" checked onchange="draw_grid()">
+                    <input type="checkbox" id="y_break" onchange="draw_grid()">
                 </div>
 
-                <span class="section-title">數據輸入</span>
-                <div style="max-height: 180px; overflow-y: auto;">
+                <span class="section-title" id="data_table_title">數據輸入 (當前: A)</span>
+                <div style="max-height: 150px; overflow-y: auto;">
                     <table id="data_table">
                         <thead>
                             <tr>
@@ -281,9 +359,29 @@
                         </tbody>
                     </table>
                 </div>
-                <div style="margin-top:10px; display:flex; justify-content:space-between;">
+                <div style="margin-top:5px; display:flex; justify-content:space-between;">
                     <button onclick="addRow()">+ 加入數據</button>
-                    <button onclick="clearData()" style="color:#d9534f;">× 清空數據</button>
+                    <button onclick="clearData()" style="color:#d9534f;">× 清空當前</button>
+                </div>
+
+                <!-- 切線工具 -->
+                <span class="section-title">切線工具 (Tangent)</span>
+                <div class="input-group">
+                    <label>X 座標:</label> 
+                    <input type="number" id="tan_x" step="any" style="width:60px;">
+                    <button onclick="addTangent()" style="margin-left:5px;">加入切線</button>
+                </div>
+                <div class="input-group">
+                    <label>長度(px):</label> 
+                    <input type="number" id="tan_len" value="100" style="width:60px;">
+                </div>
+                <div class="input-group">
+                    <label>顏色/粗幼:</label> 
+                    <input type="color" id="tan_color" value="#ff0000" style="width:40px;">
+                    <input type="number" id="tan_width" value="2" min="1" style="width:40px; margin-left:5px;"> px
+                </div>
+                <div id="tangent_list" style="margin-top:5px;">
+                    <!-- Tangent list items -->
                 </div>
 
                 <div style="margin-top: 25px; border-top: 2px solid #ddd; padding-top: 15px; text-align: center;">
@@ -301,41 +399,189 @@
 </div>
 
 <script>
-    // --- 核心邏輯 ---
-    
     var canvas, ctx;
     var w = 650;
     var h = 600;
-    // 邊距
-    var padding = { top: 60, right: 30, bottom: 80, left: 100 };
-    
-    // 全局變數
-    var plotDims = { 
-        width: 0, 
-        height: 0, 
-        cellSize: 0 
-    };
+    var padding = { top: 80, right: 80, bottom: 80, left: 100 }; 
+    var plotDims = { width: 0, height: 0, cellSize: 0 };
 
-    var dataPoints = [
-        {x: 10, y: 24.5},
-        {x: 20, y: 25.8},
-        {x: 30, y: 27.2},
-        {x: 40, y: 29.5},
-        {x: 50, y: 31.0}
-    ]; 
+    var datasets = [
+        {
+            name: "數據 A",
+            color: "#0000ff",
+            pointStyle: "dot",
+            lineType: "straight",
+            showPoints: true,
+            points: [
+                {x: -25, y: -0.012}, {x: -20, y: -0.018}, {x: -15, y: -0.024}, {x: -12, y: -0.028}
+            ]
+        }
+    ];
+    var tangents = [];
+    var activeIdx = 0;
 
     function initApp() {
         canvas = document.getElementById("graphCanvas");
         ctx = canvas.getContext("2d");
-        renderTable();
+        
+        // Add click listener
+        canvas.addEventListener('mousedown', function(e) {
+            var rect = canvas.getBoundingClientRect();
+            var x = e.clientX - rect.left;
+            var y = e.clientY - rect.top;
+            
+            // Check bounds
+            if (x >= padding.left && x <= w - padding.right && 
+                y >= padding.top && y <= h - padding.bottom) {
+                
+                var s = getSettings();
+                // Recalculate plotDims just in case
+                plotDims = calculatePlotDimensions(s);
+                
+                var dataX = inverseMapX(x, s);
+                var dataY = inverseMapY(y, s);
+                
+                // Round to reasonable precision (e.g. 3 decimal places)
+                dataX = Math.round(dataX * 1000) / 1000;
+                dataY = Math.round(dataY * 1000) / 1000;
+                
+                // Add to active dataset
+                datasets[activeIdx].points.push({x: dataX, y: dataY});
+                
+                // Sort
+                datasets[activeIdx].points.sort((a,b) => a.x - b.x);
+                
+                updateTable();
+                draw_grid();
+            }
+        });
+
+        renderDatasetControls();
+        selectDataset(0);
         draw_grid();
     }
+
+    // --- Helper: Draw label with white background mask ---
+    function drawLabelWithBackground(ctx, text, x, y, align, baseline) {
+        ctx.save();
+        ctx.textAlign = align;
+        ctx.textBaseline = baseline;
+        if (!ctx.font) ctx.font = "14px 'Times New Roman', 'PMingLiU'";
+        
+        var width = ctx.measureText(text).width;
+        var height = 14; 
+        var pad = 3; 
+        
+        var rectX, rectY;
+        if (align === "center") rectX = x - width / 2;
+        else if (align === "right") rectX = x - width;
+        else rectX = x; 
+        
+        if (baseline === "top") rectY = y;
+        else if (baseline === "middle") rectY = y - height / 2;
+        else if (baseline === "bottom" || baseline === "alphabetic") rectY = y - height;
+        else rectY = y - height; 
+        
+        ctx.fillStyle = "white";
+        ctx.fillRect(rectX - pad, rectY - pad, width + pad * 2, height + pad * 2);
+        
+        ctx.fillStyle = "black";
+        ctx.fillText(text, x, y);
+        ctx.restore();
+    }
+
+    // --- Rich Text Renderer ---
+    function drawRichText(ctx, text, x, y, options) {
+        var defaultFont = options.font || "16px 'Times New Roman', 'PMingLiU'";
+        var baseSize = parseInt(defaultFont) || 16;
+        var align = options.align || "center"; 
+        
+        var parts = text.split(/(<\/?(?:b|i|u|sup|sub)>)/g);
+        var segments = [];
+        var currentState = { b: false, i: false, u: false, type: 'normal' };
+        
+        for (var i = 0; i < parts.length; i++) {
+            var p = parts[i];
+            if (p === '<b>') currentState.b = true;
+            else if (p === '</b>') currentState.b = false;
+            else if (p === '<i>') currentState.i = true;
+            else if (p === '</i>') currentState.i = false;
+            else if (p === '<u>') currentState.u = true;
+            else if (p === '</u>') currentState.u = false;
+            else if (p === '<sup>') currentState.type = 'sup';
+            else if (p === '</sup>') currentState.type = 'normal';
+            else if (p === '<sub>') currentState.type = 'sub';
+            else if (p === '</sub>') currentState.type = 'normal';
+            else if (p !== '') {
+                segments.push({ text: p, b: currentState.b, i: currentState.i, u: currentState.u, type: currentState.type });
+            }
+        }
+
+        ctx.save();
+        var totalWidth = 0;
+        segments.forEach(function(seg) {
+            var style = seg.i ? "italic " : "";
+            var weight = seg.b ? "bold " : "";
+            var size = baseSize;
+            if (seg.type !== 'normal') size = Math.round(baseSize * 0.7);
+            ctx.font = style + weight + size + "px 'Times New Roman', 'PMingLiU'";
+            seg.width = ctx.measureText(seg.text).width;
+            seg.height = size; 
+            totalWidth += seg.width;
+        });
+
+        var currentX = x;
+        if (align === "center") currentX -= totalWidth / 2;
+        else if (align === "right") currentX -= totalWidth;
+
+        segments.forEach(function(seg) {
+            var style = seg.i ? "italic " : "";
+            var weight = seg.b ? "bold " : "";
+            var size = baseSize;
+            var yOffset = 0;
+            if (seg.type === 'sup') { size = Math.round(baseSize * 0.7); yOffset = - (baseSize * 0.15); } 
+            else if (seg.type === 'sub') { size = Math.round(baseSize * 0.7); yOffset = (baseSize * 0.2); }
+            else { size = baseSize; }
+
+            ctx.font = style + weight + size + "px 'Times New Roman', 'PMingLiU'";
+            ctx.fillStyle = "black";
+            ctx.fillText(seg.text, currentX, y + yOffset);
+
+            if (seg.u) {
+                ctx.beginPath();
+                ctx.lineWidth = 1;
+                var lineY = y + yOffset + (size * 0.15); 
+                if (seg.type === 'sub') lineY += 2;
+                ctx.moveTo(currentX, lineY);
+                ctx.lineTo(currentX + seg.width, lineY);
+                ctx.stroke();
+            }
+            currentX += seg.width;
+        });
+        ctx.restore();
+    }
+
+    function insertTag(inputId, tag) {
+        var el = document.getElementById(inputId);
+        var start = el.selectionStart;
+        var end = el.selectionEnd;
+        var text = el.value;
+        var before = text.substring(0, start);
+        var selected = text.substring(start, end);
+        var after = text.substring(end);
+        var open = "<" + tag + ">";
+        var close = "</" + tag + ">";
+        el.value = before + open + selected + close + after;
+        draw_grid();
+        el.focus();
+        el.selectionStart = el.selectionEnd = start + open.length + selected.length + close.length;
+    }
+
+    // --- Standard Functions ---
 
     function getSettings() {
         return {
             title: document.getElementById("graph_title").value,
-            pointStyle: document.getElementById("point_style").value,
-            lineColor: document.getElementById("line_color").value, // 新增：讀取線條顏色
             xLabel: document.getElementById("x_axis").value,
             xStart: parseFloat(document.getElementById("x_start").value),
             xEnd: parseFloat(document.getElementById("x_end").value),
@@ -357,439 +603,834 @@
     function calculatePlotDimensions(s) {
         var availableW = w - padding.left - padding.right;
         var availableH = h - padding.top - padding.bottom;
-
         var rangeX = Math.abs(s.xEnd - s.xStart);
         var rangeY = Math.abs(s.yEnd - s.yStart);
-        
         var unitsX = rangeX / s.xScale;
         var unitsY = rangeY / s.yScale;
+        
+        var zeroInX = (s.xStart <= 0 && s.xEnd >= 0);
+        var zeroInY = (s.yStart <= 0 && s.yEnd >= 0);
+        
+        var effectiveXBreak = s.xBreak && !zeroInX;
+        var effectiveYBreak = s.yBreak && !zeroInY;
 
-        if (s.xBreak) unitsX += 1;
-        if (s.yBreak) unitsY += 1;
-
+        if (effectiveXBreak) unitsX += 1;
+        if (effectiveYBreak) unitsY += 1;
+        
         if (unitsX <= 0) unitsX = 1;
         if (unitsY <= 0) unitsY = 1;
-
         var cellSizeX = availableW / unitsX;
         var cellSizeY = availableH / unitsY;
         var finalCellSize = Math.min(cellSizeX, cellSizeY);
+        
+        s.effectiveXBreak = effectiveXBreak;
+        s.effectiveYBreak = effectiveYBreak;
 
-        var actualW = finalCellSize * unitsX;
-        var actualH = finalCellSize * unitsY;
-
-        return {
-            width: actualW,
-            height: actualH,
-            cellSize: finalCellSize
-        };
+        return { width: finalCellSize * unitsX, height: finalCellSize * unitsY, cellSize: finalCellSize };
     }
 
     function mapX(val, s) {
         var offsetUnits = (val - s.xStart) / s.xScale;
-        if (s.xBreak) offsetUnits += 1; 
+        if (s.effectiveXBreak && s.xStart > 0) offsetUnits += 1; 
         return padding.left + offsetUnits * plotDims.cellSize;
     }
 
     function mapY(val, s) {
         var bottomY = h - padding.bottom;
         var offsetUnits = (val - s.yStart) / s.yScale;
-        if (s.yBreak) offsetUnits += 1; 
+        if (s.effectiveYBreak && s.yStart > 0) offsetUnits += 1; 
         return bottomY - offsetUnits * plotDims.cellSize;
     }
 
-    // 主繪圖函數
+    // Inverse Mapping for Click-to-Add
+    function inverseMapX(px, s) {
+        // px = padding.left + offsetUnits * cellSize
+        var offsetUnits = (px - padding.left) / plotDims.cellSize;
+        
+        if (s.effectiveXBreak && s.xStart > 0) {
+            offsetUnits -= 1; 
+            if (offsetUnits < 0) return s.xStart; // Clamped to start
+        }
+        
+        // val = start + offset * scale
+        return s.xStart + offsetUnits * s.xScale;
+    }
+
+    function inverseMapY(py, s) {
+        // py = bottomY - offsetUnits * cellSize
+        var bottomY = h - padding.bottom;
+        var offsetUnits = (bottomY - py) / plotDims.cellSize;
+        
+        if (s.effectiveYBreak && s.yStart > 0) {
+            offsetUnits -= 1;
+            if (offsetUnits < 0) return s.yStart;
+        }
+        
+        return s.yStart + offsetUnits * s.yScale;
+    }
+
     function draw_grid() {
         var s = getSettings();
-        
         plotDims = calculatePlotDimensions(s);
 
-        // 1. 清空畫布
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0, w, h);
 
-        // 2. 標題 - 字體更新
         var chartCenterX = padding.left + plotDims.width / 2;
-        ctx.fillStyle = "black";
-        ctx.font = "bold 22px 'Times New Roman', 'PMingLiU'"; 
-        ctx.textAlign = "center";
         var titleX = (plotDims.width < 200) ? w / 2 : chartCenterX;
-        ctx.fillText(s.title, titleX, 35);
+        
+        drawRichText(ctx, s.title, titleX, 35, { font: "bold 22px", align: "center" });
 
-        // 定義邊界
         var axisOriginX = padding.left;
         var axisOriginY = h - padding.bottom;
-
+        
         var visualStartX = axisOriginX;
         var visualStartY = axisOriginY;
-
-        if (s.xBreak) visualStartX += plotDims.cellSize; 
-        if (s.yBreak) visualStartY -= plotDims.cellSize; 
+        if (s.effectiveXBreak) visualStartX += plotDims.cellSize; 
+        if (s.effectiveYBreak) visualStartY -= plotDims.cellSize; 
 
         var gridEndX = padding.left + plotDims.width;
         var gridEndY = (h - padding.bottom) - plotDims.height;
-        var arrowExtend = 20;
+        var arrowExtend = 25; 
 
-        // 3. 繪製主軸線
+        // --- Smart Axis Positioning ---
+        var visualXAxisY = axisOriginY; 
+        var visualYAxisX = axisOriginX; 
+
+        if (s.yStart <= 0 && s.yEnd >= 0) visualXAxisY = mapY(0, s);
+        else if (s.yEnd < 0) visualXAxisY = gridEndY; 
+        
+        if (s.xStart <= 0 && s.xEnd >= 0) visualYAxisX = mapX(0, s);
+        else if (s.xEnd < 0) visualYAxisX = gridEndX; 
+        
+        // --- Determine Arrow Direction ---
+        var arrowLeft = (s.xStart < 0);
+        var arrowRight = (s.xEnd > 0);
+        var arrowUp = (s.yEnd > 0);
+        var arrowDown = (s.yStart < 0);
+
+        // --- Draw Main Axis Lines with Integrated Breaks ---
         ctx.strokeStyle = "black";
         ctx.lineWidth = 2;
         ctx.beginPath();
-        // Y軸
-        ctx.moveTo(axisOriginX, axisOriginY);
-        ctx.lineTo(axisOriginX, gridEndY - arrowExtend);
-        // X軸
-        ctx.moveTo(axisOriginX, axisOriginY);
-        ctx.lineTo(gridEndX + arrowExtend, axisOriginY);
+        
+        // X Axis Line Drawing
+        var xLineStart = padding.left - (arrowLeft ? arrowExtend : 0);
+        var xLineEnd = gridEndX + (arrowRight ? arrowExtend : 0);
+        var cellSize = plotDims.cellSize;
+
+        if (s.effectiveXBreak) {
+            var breakXCenter = (s.xEnd < 0) ? (gridEndX - cellSize * 0.25) : (axisOriginX + cellSize * 0.25);
+            var gapHalf = 5; 
+            
+            // Draw Part 1
+            ctx.moveTo(xLineStart, visualXAxisY);
+            ctx.lineTo(breakXCenter - gapHalf, visualXAxisY);
+            
+            // Draw Jagged Part (Continuous)
+            drawJaggedPath(ctx, breakXCenter, visualXAxisY, 5, false);
+
+            // Draw Part 2
+            ctx.moveTo(breakXCenter + gapHalf, visualXAxisY);
+            ctx.lineTo(xLineEnd, visualXAxisY);
+        } else {
+            ctx.moveTo(xLineStart, visualXAxisY);
+            ctx.lineTo(xLineEnd, visualXAxisY);
+        }
+        
+        // Y Axis Line Drawing
+        var yLineStart = (h - padding.bottom) + (arrowDown ? arrowExtend : 0);
+        var yLineEnd = gridEndY - (arrowUp ? arrowExtend : 0);
+
+        if (s.effectiveYBreak) {
+            var breakYCenter = (s.yEnd < 0) ? (gridEndY + cellSize * 0.25) : (axisOriginY - cellSize * 0.25);
+            var gapHalf = 5;
+
+            // Draw Part 1 (Bottom up)
+            ctx.moveTo(visualYAxisX, yLineStart);
+            ctx.lineTo(visualYAxisX, breakYCenter + gapHalf);
+
+            // Draw Jagged Part
+            drawJaggedPath(ctx, visualYAxisX, breakYCenter, 5, true);
+
+            // Draw Part 2
+            ctx.moveTo(visualYAxisX, breakYCenter - gapHalf);
+            ctx.lineTo(visualYAxisX, yLineEnd);
+        } else {
+            ctx.moveTo(visualYAxisX, yLineStart);
+            ctx.lineTo(visualYAxisX, yLineEnd);
+        }
         ctx.stroke();
 
-        // 4. 箭嘴
-        drawArrow(gridEndX + arrowExtend, axisOriginY, 'right');
-        drawArrow(axisOriginX, gridEndY - arrowExtend, 'up');
+        // --- Arrows ---
+        if (arrowRight) drawArrow(xLineEnd, visualXAxisY, 'right');
+        if (arrowLeft) drawArrow(xLineStart, visualXAxisY, 'left');
+        
+        if (arrowUp) drawArrow(visualYAxisX, yLineEnd, 'up');
+        if (arrowDown) drawArrow(visualYAxisX, yLineStart, 'down');
 
-        // 5. 原點 0 - 字體更新
-        ctx.fillStyle = "black";
+
+        // --- Consolidated Zero Labeling ---
         ctx.font = "14px 'Times New Roman', 'PMingLiU'";
-        ctx.textAlign = "right";
-        ctx.textBaseline = "top"; 
-        ctx.fillText("0", axisOriginX - 5, axisOriginY + 5);
+        var zeroXPos = visualYAxisX;
+        var zeroYPos = visualXAxisY;
+        
+        if (s.effectiveXBreak && s.xStart > 0) zeroXPos = axisOriginX; 
+        if (s.effectiveXBreak && s.xEnd < 0) zeroXPos = gridEndX;    
+        
+        if (s.effectiveYBreak && s.yStart > 0) zeroYPos = axisOriginY; 
+        if (s.effectiveYBreak && s.yEnd < 0) zeroYPos = gridEndY;      
 
-        // 6. 繪製省略符區間的細分網格
+        var align = "right";
+        var base = "top";
+        var xOffset = -5;
+        var yOffset = 5;
+
+        var isGraphRight = (s.xEnd > 0) || (s.effectiveXBreak && s.xStart > 0);
+        var isGraphLeft = (s.xStart < 0) || (s.effectiveXBreak && s.xEnd < 0);
+        var isGraphUp = (s.yEnd > 0) || (s.effectiveYBreak && s.yStart > 0);
+        var isGraphDown = (s.yStart < 0) || (s.effectiveYBreak && s.yEnd < 0);
+
+        if (isGraphRight && isGraphUp && !isGraphLeft && !isGraphDown) {
+            align = "right"; base = "top"; xOffset = -5; yOffset = 5;
+        } else if (isGraphRight && isGraphDown && !isGraphLeft && !isGraphUp) {
+            align = "right"; base = "bottom"; xOffset = -5; yOffset = -5;
+        } else if (isGraphLeft && isGraphUp && !isGraphRight && !isGraphDown) {
+            align = "left"; base = "top"; xOffset = 5; yOffset = 5;
+        } else if (isGraphLeft && isGraphDown && !isGraphRight && !isGraphUp) {
+             align = "left"; base = "bottom"; xOffset = 5; yOffset = -5;
+        } else {
+             align = "right"; base = "top"; xOffset = -5; yOffset = 5;
+             if (zeroYPos < h/2 && zeroXPos > w/2) { align = "left"; base = "bottom"; xOffset = 5; yOffset = -5;} 
+             else if (zeroYPos < h/2) { base = "bottom"; yOffset = -5; } 
+             else if (zeroXPos > w/2) { align = "left"; xOffset = 5; }
+        }
+
+        drawLabelWithBackground(ctx, "0", zeroXPos + xOffset, zeroYPos + yOffset, align, base);
+
         drawBreakSubdivisions(s, axisOriginX, axisOriginY, plotDims.cellSize, gridEndX, gridEndY);
+        
+        drawTicksAndGrid(s, axisOriginX, axisOriginY, visualStartX, visualStartY, gridEndX, gridEndY, visualXAxisY, visualYAxisX);
 
-        // 7. 繪製 Z 省略符
-        drawBreaks(s, axisOriginX, axisOriginY, visualStartX, visualStartY, plotDims.cellSize);
+        drawRichText(ctx, s.xLabel, chartCenterX, h - 15, { font: "bold 16px", align: "center" });
+        
+        ctx.save();
+        var yLabelX = 25;
+        var yLabelY = axisOriginY - plotDims.height / 2;
+        ctx.translate(yLabelX, yLabelY);
+        ctx.rotate(-Math.PI / 2);
+        drawRichText(ctx, s.yLabel, 0, 0, { font: "bold 16px", align: "center" });
+        ctx.restore();
 
-        // 8. 繪製主網格與刻度 - 字體更新
-        ctx.textAlign = "center";
-        ctx.textBaseline = "top";
+        // Draw Tangents FIRST so curve is on top
+        drawTangents(s);
+        // Then Draw Curve
+        plotAllDatasets(s);
+    }
+
+    // Connects the axis with a jagged line
+    function drawJaggedPath(ctx, cx, cy, size, vertical) {
+        var s = size;
+        if (!vertical) {
+            // Horizontal N-shape
+            ctx.lineTo(cx - s/2, cy - s); // Peak Up
+            ctx.lineTo(cx + s/2, cy + s); // Peak Down
+            ctx.lineTo(cx + s, cy);       // Back to Axis
+        } else {
+            // Vertical Z-shape
+            ctx.lineTo(cx - s, cy + s/2); // Peak Left
+            ctx.lineTo(cx + s, cy - s/2); // Peak Right
+            ctx.lineTo(cx, cy - s);       // Back to Axis
+        }
+    }
+
+    function drawTicksAndGrid(s, axisOriginX, axisOriginY, visualStartX, visualStartY, gridEndX, gridEndY, xAxisPos, yAxisPos) {
         ctx.font = "14px 'Times New Roman', 'PMingLiU'";
 
-        // --- X軸刻度 ---
         if (s.xScale > 0) {
             var subDivs = s.xSubdiv;
             var xSubStep = s.xScale / subDivs;
+            var steps = Math.ceil((s.xEnd - s.xStart) / xSubStep);
             
-            var i = 0;
-            while (true) {
+            for (var i = 0; i <= steps; i++) {
                 var x = s.xStart + i * xSubStep;
-                if (x > s.xEnd + (xSubStep / 100)) break;
-
                 var px = mapX(x, s);
                 
-                if (px >= visualStartX - 0.5 && px <= gridEndX + 0.5) {
-                    var isMajor = (i % subDivs === 0);
+                if (px >= axisOriginX - 0.5 && px <= gridEndX + 0.5) {
+                    var isMajor = (Math.abs(x - s.xStart) < 1e-9) || (Math.round(i) % subDivs === 0);
                     var tickIndex = Math.round(i / subDivs);
                     var isLabelLine = isMajor && (tickIndex % s.xLabelFreq === 0);
+                    var isYAxisLine = Math.abs(px - yAxisPos) < 1; 
 
                     ctx.beginPath();
                     ctx.moveTo(px, axisOriginY); 
                     ctx.lineTo(px, gridEndY); 
-
-                    if (isLabelLine) {
-                        ctx.strokeStyle = "#888"; 
-                        ctx.lineWidth = 1.5;
-                    } else if (isMajor) {
-                        ctx.strokeStyle = "#bbb"; 
-                        ctx.lineWidth = 1;
-                    } else {
-                        ctx.strokeStyle = "#e8e8e8"; 
-                        ctx.lineWidth = 0.5;
+                    
+                    if (!isYAxisLine) {
+                        if (isLabelLine) { ctx.strokeStyle = "#888"; ctx.lineWidth = 1.5; ctx.stroke(); } 
+                        else if (isMajor) { ctx.strokeStyle = "#bbb"; ctx.lineWidth = 1; ctx.stroke(); } 
+                        else { ctx.strokeStyle = "#e8e8e8"; ctx.lineWidth = 0.5; ctx.stroke(); }
                     }
-                    ctx.stroke();
 
-                    // 刻度線
                     if (isMajor) {
-                        ctx.strokeStyle = "black";
-                        ctx.lineWidth = 1;
-                        ctx.beginPath();
-                        ctx.moveTo(px, axisOriginY);
-                        ctx.lineTo(px, axisOriginY + 6);
+                        ctx.strokeStyle = "black"; ctx.lineWidth = 1;
+                        ctx.beginPath(); 
+                        var tickDir = (s.yEnd < 0) ? -6 : 6; 
+                        ctx.moveTo(px, xAxisPos); 
+                        ctx.lineTo(px, xAxisPos + tickDir); 
                         ctx.stroke();
-
+                        
                         if (isLabelLine) {
                             var label = Math.round(x * 10000) / 10000;
-                            ctx.fillStyle = "black";
-                            ctx.fillText(label, px, axisOriginY + 10);
+                            var isZero = Math.abs(label) < 1e-10;
+                            if (!isZero) {
+                                var base = "top";
+                                var yOffset = 10;
+                                if (s.yEnd < 0) {
+                                    base = "bottom";
+                                    yOffset = -15; 
+                                }
+                                drawLabelWithBackground(ctx, label, px, xAxisPos + yOffset, "center", base);
+                            }
                         }
                     }
                 }
-                i++;
             }
         }
 
-        // --- Y軸刻度 ---
-        ctx.textAlign = "right";
-        ctx.textBaseline = "middle";
-        
         if (s.yScale > 0) {
             var subDivs = s.ySubdiv;
             var ySubStep = s.yScale / subDivs;
-            
-            var j = 0;
-            while (true) {
-                var y = s.yStart + j * ySubStep;
-                if (y > s.yEnd + (ySubStep / 100)) break;
+            var steps = Math.ceil((s.yEnd - s.yStart) / ySubStep);
 
+            for (var j = 0; j <= steps; j++) {
+                var y = s.yStart + j * ySubStep;
                 var py = mapY(y, s);
                 
-                if (py >= gridEndY - 0.5 && py <= visualStartY + 0.5) {
-                    var isMajor = (j % subDivs === 0);
+                if (py >= gridEndY - 0.5 && py <= axisOriginY + 0.5) {
+                    var isMajor = (Math.abs(y - s.yStart) < 1e-9) || (Math.round(j) % subDivs === 0);
                     var tickIndex = Math.round(j / subDivs);
                     var isLabelLine = isMajor && (tickIndex % s.yLabelFreq === 0);
+                    var isXAxisLine = Math.abs(py - xAxisPos) < 1;
 
                     ctx.beginPath();
                     ctx.moveTo(axisOriginX, py);
                     ctx.lineTo(gridEndX, py);
-
-                    if (isLabelLine) {
-                        ctx.strokeStyle = "#888";
-                        ctx.lineWidth = 1.5;
-                    } else if (isMajor) {
-                        ctx.strokeStyle = "#bbb";
-                        ctx.lineWidth = 1;
-                    } else {
-                        ctx.strokeStyle = "#e8e8e8";
-                        ctx.lineWidth = 0.5;
+                    
+                    if (!isXAxisLine) {
+                        if (isLabelLine) { ctx.strokeStyle = "#888"; ctx.lineWidth = 1.5; ctx.stroke(); } 
+                        else if (isMajor) { ctx.strokeStyle = "#bbb"; ctx.lineWidth = 1; ctx.stroke(); } 
+                        else { ctx.strokeStyle = "#e8e8e8"; ctx.lineWidth = 0.5; ctx.stroke(); }
                     }
-                    ctx.stroke();
-
+                    
                     if (isMajor) {
-                        ctx.strokeStyle = "black";
-                        ctx.lineWidth = 1;
+                        ctx.strokeStyle = "black"; ctx.lineWidth = 1;
                         ctx.beginPath();
-                        ctx.moveTo(axisOriginX, py);
-                        ctx.lineTo(axisOriginX - 6, py);
+                        var tickDir = (s.xEnd < 0) ? 6 : -6;
+                        ctx.moveTo(yAxisPos, py);
+                        ctx.lineTo(yAxisPos + tickDir, py);
                         ctx.stroke();
 
                         if (isLabelLine) {
                             var label = Math.round(y * 10000) / 10000;
-                            ctx.fillStyle = "black";
-                            ctx.fillText(label, axisOriginX - 10, py);
+                            var isZero = Math.abs(label) < 1e-10;
+                            if (!isZero) {
+                                var align = "right";
+                                var xOffset = -10;
+                                if (s.xEnd < 0) {
+                                    align = "left";
+                                    xOffset = 10;
+                                }
+                                drawLabelWithBackground(ctx, label, yAxisPos + xOffset, py, align, "middle");
+                            }
                         }
                     }
                 }
-                j++;
             }
         }
-
-        // 9. 軸標籤 - 字體更新
-        ctx.fillStyle = "black";
-        ctx.textAlign = "center";
-        ctx.font = "bold 16px 'Times New Roman', 'PMingLiU'";
-        
-        // X Label
-        ctx.fillText(s.xLabel, chartCenterX, h - 15);
-        
-        // Y Label
-        ctx.save();
-        ctx.translate(25, axisOriginY - plotDims.height / 2);
-        ctx.rotate(-Math.PI / 2);
-        ctx.fillText(s.yLabel, 0, 0);
-        ctx.restore();
-
-        // 10. 數據點
-        plotDataPoints(s);
     }
 
     function drawArrow(x, y, dir) {
-        ctx.fillStyle = "black";
         ctx.beginPath();
+        var s = 6; 
         if (dir === 'right') {
-            ctx.moveTo(x, y);
-            ctx.lineTo(x - 10, y - 5);
-            ctx.lineTo(x - 10, y + 5);
+            ctx.moveTo(x, y); ctx.lineTo(x - s, y - s); ctx.lineTo(x - s, y + s);
+        } else if (dir === 'left') {
+            ctx.moveTo(x, y); ctx.lineTo(x + s, y - s); ctx.lineTo(x + s, y + s);
         } else if (dir === 'up') {
-            ctx.moveTo(x, y);
-            ctx.lineTo(x - 5, y + 10);
-            ctx.lineTo(x + 5, y + 10);
+            ctx.moveTo(x, y); ctx.lineTo(x - s, y + s); ctx.lineTo(x + s, y + s);
+        } else if (dir === 'down') {
+            ctx.moveTo(x, y); ctx.lineTo(x - s, y - s); ctx.lineTo(x + s, y - s);
         }
+        ctx.fillStyle = "black";
         ctx.fill();
     }
 
-    // 繪製省略符區間內的細分網格
-    function drawBreakSubdivisions(s, originX, originY, cellSize, gridEndX, gridEndY) {
-        ctx.lineWidth = 0.5;
-        ctx.strokeStyle = "#e8e8e8";
-
-        // X Break Interval
-        if (s.xBreak) {
+    function drawBreakSubdivisions(s, axisOriginX, axisOriginY, cellSize, gridEndX, gridEndY) {
+        if (s.effectiveXBreak) {
             var step = cellSize / s.xSubdiv;
-            // 畫 1 到 s.xSubdiv - 1 的細線
-            for (var i = 1; i < s.xSubdiv; i++) {
-                var px = originX + i * step;
-                ctx.beginPath();
-                ctx.moveTo(px, originY);
-                ctx.lineTo(px, gridEndY);
-                ctx.stroke();
+            var startPx = (s.xStart > 0) ? axisOriginX : (gridEndX - cellSize);
+            for (var k = 1; k < s.xSubdiv; k++) {
+                var px = startPx + k * step;
+                ctx.beginPath(); ctx.moveTo(px, axisOriginY); ctx.lineTo(px, gridEndY);
+                ctx.strokeStyle = "#e8e8e8"; ctx.lineWidth = 0.5; ctx.stroke();
             }
         }
-
-        // Y Break Interval
-        if (s.yBreak) {
+        if (s.effectiveYBreak) {
             var step = cellSize / s.ySubdiv;
-            for (var j = 1; j < s.ySubdiv; j++) {
-                var py = originY - j * step;
-                ctx.beginPath();
-                ctx.moveTo(originX, py);
-                ctx.lineTo(gridEndX, py);
+            var startPy = (s.yStart > 0) ? (axisOriginY - cellSize) : gridEndY;
+            for (var k = 1; k < s.ySubdiv; k++) {
+                var py = startPy + k * step;
+                ctx.beginPath(); ctx.moveTo(axisOriginX, py); ctx.lineTo(gridEndX, py);
+                ctx.strokeStyle = "#e8e8e8"; ctx.lineWidth = 0.5; ctx.stroke();
+            }
+        }
+    }
+
+    // --- Natural Cubic Spline Implementation ---
+    function createNaturalCubicSpline(x, y) {
+        const n = x.length - 1;
+        const a = new Array(n + 1).fill(0);
+        const b = new Array(n).fill(0);
+        const d = new Array(n).fill(0); 
+        const h = new Array(n).fill(0);
+        const alpha = new Array(n).fill(0);
+        const c = new Array(n + 1).fill(0);
+        const l = new Array(n + 1).fill(0);
+        const mu = new Array(n + 1).fill(0);
+        const z = new Array(n + 1).fill(0);
+
+        for (let i = 0; i <= n; i++) a[i] = y[i];
+        for (let i = 0; i < n; i++) h[i] = x[i + 1] - x[i];
+        
+        for (let i = 1; i < n; i++) {
+            alpha[i] = (3 / h[i]) * (a[i + 1] - a[i]) - (3 / h[i - 1]) * (a[i] - a[i - 1]);
+        }
+
+        l[0] = 1; mu[0] = 0; z[0] = 0;
+
+        for (let i = 1; i < n; i++) {
+            l[i] = 2 * (x[i + 1] - x[i - 1]) - h[i - 1] * mu[i - 1];
+            mu[i] = h[i] / l[i];
+            z[i] = (alpha[i] - h[i - 1] * z[i - 1]) / l[i];
+        }
+
+        l[n] = 1; z[n] = 0; c[n] = 0;
+
+        for (let j = n - 1; j >= 0; j--) {
+            c[j] = z[j] - mu[j] * c[j + 1];
+            b[j] = (a[j + 1] - a[j]) / h[j] - h[j] * (c[j + 1] + 2 * c[j]) / 3;
+            d[j] = (c[j + 1] - c[j]) / (3 * h[j]);
+        }
+
+        return {
+            interpolate: function(targetX) {
+                // Extrapolation Linear
+                if (targetX < x[0]) return a[0] + b[0] * (targetX - x[0]);
+                if (targetX > x[n]) {
+                    let idx = n - 1;
+                    let h_last = h[idx];
+                    let slope = b[idx] + 2 * c[idx] * h_last + 3 * d[idx] * h_last * h_last;
+                    return a[n] + slope * (targetX - x[n]);
+                }
+
+                // Binary search for interval
+                let i = 0, j = n;
+                while (i < j) {
+                    let mid = Math.floor((i + j) / 2);
+                    if (x[mid] <= targetX) i = mid + 1; else j = mid;
+                }
+                let idx = Math.max(0, i - 1);
+                if (idx >= n) idx = n - 1;
+
+                let dx = targetX - x[idx];
+                return a[idx] + b[idx] * dx + c[idx] * dx * dx + d[idx] * dx * dx * dx;
+            },
+            derivative: function(targetX) {
+                 if (targetX < x[0]) return b[0];
+                 if (targetX > x[n]) {
+                     let idx = n - 1;
+                     let h_last = h[idx];
+                     return b[idx] + 2 * c[idx] * h_last + 3 * d[idx] * h_last * h_last;
+                 }
+                 
+                 let i = 0, j = n;
+                 while(i < j) { let mid = Math.floor((i+j)/2); if(x[mid] <= targetX) i = mid+1; else j = mid; }
+                 let idx = Math.max(0, i-1);
+                 if (idx >= n) idx = n - 1;
+                 
+                 let dx = targetX - x[idx];
+                 return b[idx] + 2*c[idx]*dx + 3*d[idx]*dx*dx;
+            }
+        };
+    }
+
+    // --- Plotting Logic ---
+
+    function plotAllDatasets(s) {
+        datasets.forEach(function(ds) {
+            var sortedPoints = ds.points.slice().sort(function(a,b){ return a.x - b.x; });
+            // Filter duplicates x
+            var uniquePoints = [];
+            if(sortedPoints.length > 0) uniquePoints.push(sortedPoints[0]);
+            for(var i=1; i<sortedPoints.length; i++) {
+                if(sortedPoints[i].x > sortedPoints[i-1].x + 1e-9) {
+                    uniquePoints.push(sortedPoints[i]);
+                }
+            }
+            sortedPoints = uniquePoints;
+
+            if (sortedPoints.length === 0) return;
+
+            ctx.beginPath();
+            ctx.strokeStyle = ds.color;
+            ctx.lineWidth = 1.5;
+
+            // --- Draw Connection Line ---
+            if (ds.lineType === 'trendline') {
+                // Linear Regression
+                var n = sortedPoints.length;
+                var sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+                sortedPoints.forEach(p => { sumX += p.x; sumY += p.y; sumXY += p.x*p.y; sumX2 += p.x*p.x; });
+                
+                var slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+                var intercept = (sumY - slope * sumX) / n;
+                
+                var x1 = s.xStart; var y1 = slope * x1 + intercept;
+                var x2 = s.xEnd; var y2 = slope * x2 + intercept;
+                
+                ctx.moveTo(mapX(x1, s), mapY(y1, s));
+                ctx.lineTo(mapX(x2, s), mapY(y2, s));
+                ctx.stroke();
+
+            } else if (ds.lineType === 'curve') {
+                if (sortedPoints.length > 1) {
+                    var xArr = sortedPoints.map(p => p.x);
+                    var yArr = sortedPoints.map(p => p.y);
+                    // Use Natural Cubic Spline
+                    var spline = createNaturalCubicSpline(xArr, yArr);
+
+                    var drawStart = Math.max(s.xStart, xArr[0]);
+                    var drawEnd = Math.min(s.xEnd, xArr[xArr.length - 1]);
+                    
+                    // High resolution stepping
+                    var stepPixels = 0.5; 
+                    var stepX = (s.xEnd - s.xStart) / (plotDims.width / stepPixels);
+                    stepX = Math.abs(stepX);
+                    if (stepX === 0) stepX = 0.1;
+
+                    ctx.beginPath();
+                    var first = true;
+                    
+                    for (var cx = drawStart; cx <= drawEnd; cx += stepX) {
+                        var cy = spline.interpolate(cx);
+                        if (first) { ctx.moveTo(mapX(cx, s), mapY(cy, s)); first = false; }
+                        else { ctx.lineTo(mapX(cx, s), mapY(cy, s)); }
+                    }
+                    ctx.lineTo(mapX(drawEnd, s), mapY(spline.interpolate(drawEnd), s));
+                    ctx.stroke();
+                }
+            } else {
+                // Straight
+                var started = false;
+                for(var i=0; i<sortedPoints.length; i++) {
+                    var p = sortedPoints[i];
+                    if (p.x >= s.xStart && p.x <= s.xEnd && p.y >= s.yStart && p.y <= s.yEnd) {
+                        var px = mapX(p.x, s);
+                        var py = mapY(p.y, s);
+                        if (!started) { ctx.moveTo(px, py); started = true; } 
+                        else { ctx.lineTo(px, py); }
+                    }
+                }
                 ctx.stroke();
             }
-        }
-    }
 
-    // 繪製 Z 省略符號
-    function drawBreaks(s, axisOriginX, axisOriginY, visualStartX, visualStartY, cellSize) {
-        ctx.strokeStyle = "black";
-        ctx.lineWidth = 2;
-        var zWidth = 8; 
-        var zHeight = 6;
-        
-        // X Break
-        if (s.xBreak) {
-            var centerX = (axisOriginX + visualStartX) / 2;
-            var zLeft = centerX - zWidth/2;
-            var zRight = centerX + zWidth/2;
-
-            // Z
-            ctx.beginPath();
-            ctx.moveTo(zLeft, axisOriginY);
-            ctx.lineTo(zLeft + zWidth/3, axisOriginY + zHeight); 
-            ctx.lineTo(zRight - zWidth/3, axisOriginY - zHeight); 
-            ctx.lineTo(zRight, axisOriginY); 
-            ctx.stroke();
-        }
-
-        // Y Break
-        if (s.yBreak) {
-            var centerY = (axisOriginY + visualStartY) / 2;
-            var zTop = centerY - zWidth/2; 
-            var zBottom = centerY + zWidth/2;
-
-            // Z (N形)
-            ctx.beginPath();
-            ctx.moveTo(axisOriginX, zBottom);
-            ctx.lineTo(axisOriginX - zHeight, zBottom - zWidth/3); 
-            ctx.lineTo(axisOriginX + zHeight, zTop + zWidth/3);   
-            ctx.lineTo(axisOriginX, zTop); 
-            ctx.stroke();
-        }
-    }
-
-    function plotDataPoints(s) {
-        // Change: Points selection logic
-        
-        var rows = document.getElementById("data_rows").children;
-        var points = [];
-
-        // Collect points
-        for (var i = 0; i < rows.length; i++) {
-            var inputs = rows[i].getElementsByTagName("input");
-            var x = parseFloat(inputs[0].value);
-            var y = parseFloat(inputs[1].value);
-
-            if (!isNaN(x) && !isNaN(y)) {
-                points.push({x: x, y: y});
+            // --- Draw Points ---
+            if (ds.showPoints !== false) {
+                ctx.fillStyle = ds.color;
+                ctx.strokeStyle = ds.color;
+                ctx.lineWidth = 2;
+                
+                sortedPoints.forEach(function(p) {
+                    if (p.x >= s.xStart && p.x <= s.xEnd && p.y >= s.yStart && p.y <= s.yEnd) {
+                        var px = mapX(p.x, s);
+                        var py = mapY(p.y, s);
+                        
+                        if (ds.pointStyle === 'dot') {
+                            ctx.beginPath(); ctx.arc(px, py, 3, 0, Math.PI*2); ctx.fill();
+                        } else if (ds.pointStyle === 'cross') {
+                            var r = 4;
+                            ctx.beginPath();
+                            ctx.moveTo(px-r, py-r); ctx.lineTo(px+r, py+r);
+                            ctx.moveTo(px+r, py-r); ctx.lineTo(px-r, py+r);
+                            ctx.stroke();
+                        } else if (ds.pointStyle === 'plus') {
+                            var r = 5;
+                            ctx.beginPath();
+                            ctx.moveTo(px, py-r); ctx.lineTo(px, py+r);
+                            ctx.moveTo(px-r, py); ctx.lineTo(px+r, py);
+                            ctx.stroke();
+                        }
+                    }
+                });
             }
+        });
+    }
+
+    function drawTangents(s) {
+        var ds = datasets[activeIdx];
+        if (!ds || ds.points.length < 2) return;
+        
+        var sorted = ds.points.slice().sort((a,b) => a.x - b.x);
+        // Filter unique X for spline safety
+        var uniquePoints = [];
+        if(sorted.length > 0) uniquePoints.push(sorted[0]);
+        for(var i=1; i<sorted.length; i++) {
+            if(sorted[i].x > sorted[i-1].x + 1e-9) uniquePoints.push(sorted[i]);
+        }
+        sorted = uniquePoints;
+
+        var xArr = sorted.map(p => p.x);
+        var yArr = sorted.map(p => p.y);
+        
+        var spline = null;
+        if (ds.lineType === 'curve') {
+            spline = createNaturalCubicSpline(xArr, yArr);
         }
 
-        // Sort for line connecting
-        points.sort(function(a, b) { return a.x - b.x; });
+        tangents.forEach(function(tan) {
+            var x0 = tan.x;
+            var width = tan.width || 2;
+            var len = tan.length || 100;
+            var color = tan.color || "red";
 
-        // 1. Draw Line (Using Selected Color)
-        if (points.length > 1) {
-            ctx.strokeStyle = s.lineColor; // 使用用戶選擇的顏色
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            var p0 = points[0];
-            ctx.moveTo(mapX(p0.x, s), mapY(p0.y, s));
-            for(var k=1; k<points.length; k++) {
-                ctx.lineTo(mapX(points[k].x, s), mapY(points[k].y, s));
+            var y0 = 0;
+            var slope = 0;
+
+            if (ds.lineType === 'curve' && spline) {
+                y0 = spline.interpolate(x0);
+                slope = spline.derivative(x0);
+            } else if (ds.lineType === 'trendline') {
+                var n = sorted.length;
+                var sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+                sorted.forEach(p => { sumX += p.x; sumY += p.y; sumXY += p.x*p.y; sumX2 += p.x*p.x; });
+                var m = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+                var c = (sumY - m * sumX) / n;
+                y0 = m * x0 + c;
+                slope = m;
+            } else {
+                // Straight: Piecewise
+                var idx = -1;
+                for(var i=0; i<sorted.length; i++) {
+                    if (sorted[i].x >= x0) { idx = i; break; }
+                }
+                
+                if (idx === 0) { 
+                     var p0 = sorted[0], p1 = sorted[1];
+                     slope = (p1.y - p0.y)/(p1.x - p0.x);
+                     y0 = p0.y + slope * (x0 - p0.x);
+                } else if (idx === -1) { 
+                     var pLast = sorted[sorted.length-1], pPrev = sorted[sorted.length-2];
+                     slope = (pLast.y - pPrev.y)/(pLast.x - pPrev.x);
+                     y0 = pLast.y + slope * (x0 - pLast.x);
+                } else {
+                     var pA = sorted[idx-1];
+                     var pB = sorted[idx];
+                     slope = (pB.y - pA.y) / (pB.x - pA.x);
+                     y0 = pA.y + slope * (x0 - pA.x);
+                }
             }
+
+            var px = mapX(x0, s);
+            var py = mapY(y0, s);
+            
+            var dx = 0.0001; 
+            var dy = slope * dx;
+            var px2 = mapX(x0 + dx, s);
+            var py2 = mapY(y0 + dy, s);
+            
+            var dPx = px2 - px;
+            var dPy = py2 - py;
+            var angle = Math.atan2(dPy, dPx);
+            
+            var end1X = px + Math.cos(angle) * (len/2);
+            var end1Y = py + Math.sin(angle) * (len/2);
+            var end2X = px - Math.cos(angle) * (len/2);
+            var end2Y = py - Math.sin(angle) * (len/2);
+            
+            ctx.beginPath();
+            ctx.moveTo(end1X, end1Y);
+            ctx.lineTo(end2X, end2Y);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
             ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.arc(px, py, 3, 0, Math.PI*2);
+            ctx.fillStyle = color;
+            ctx.fill();
+        });
+    }
+
+    // --- UI Logic ---
+
+    function renderDatasetControls() {
+        var container = document.getElementById("dataset_list");
+        container.innerHTML = "";
+        datasets.forEach(function(ds, idx) {
+            var btn = document.createElement("button");
+            btn.className = "dataset-btn" + (idx === activeIdx ? " active" : "");
+            btn.innerText = (idx + 1); 
+            btn.title = ds.name;
+            btn.onclick = function() { selectDataset(idx); };
+            container.appendChild(btn);
+        });
+    }
+
+    function selectDataset(idx) {
+        if (idx < 0 || idx >= datasets.length) return;
+        activeIdx = idx;
+        var ds = datasets[idx];
+        
+        document.getElementById("ds_name").value = ds.name;
+        document.getElementById("point_style").value = ds.pointStyle;
+        document.getElementById("line_color").value = ds.color;
+        document.getElementById("line_type").value = ds.lineType || 'straight';
+        document.getElementById("show_points").checked = (ds.showPoints !== false);
+        document.getElementById("data_table_title").innerText = "數據輸入 (當前: " + ds.name + ")";
+        
+        renderDatasetControls();
+        updateTable();
+    }
+
+    function updateDatasetMeta() {
+        var ds = datasets[activeIdx];
+        ds.name = document.getElementById("ds_name").value;
+        ds.pointStyle = document.getElementById("point_style").value;
+        ds.color = document.getElementById("line_color").value;
+        ds.lineType = document.getElementById("line_type").value;
+        ds.showPoints = document.getElementById("show_points").checked;
+        document.getElementById("data_table_title").innerText = "數據輸入 (當前: " + ds.name + ")";
+        renderDatasetControls(); 
+        draw_grid();
+    }
+
+    function addDataset() {
+        datasets.push({
+            name: "數據 " + String.fromCharCode(65 + datasets.length),
+            color: "#000000",
+            pointStyle: "dot",
+            lineType: "straight",
+            showPoints: true,
+            points: []
+        });
+        selectDataset(datasets.length - 1);
+    }
+
+    function removeDataset() {
+        if (datasets.length <= 1) {
+            alert("最少保留一組數據！");
+            return;
         }
-
-        // 2. Draw Points based on selection
-        for (var k=0; k<points.length; k++) {
-             var px = mapX(points[k].x, s);
-             var py = mapY(points[k].y, s);
-
-             ctx.beginPath();
-             
-             if (s.pointStyle === 'cross') {
-                 // Blue Cross
-                 ctx.strokeStyle = "blue";
-                 ctx.lineWidth = 2;
-                 var size = 5;
-                 ctx.moveTo(px - size, py - size);
-                 ctx.lineTo(px + size, py + size);
-                 ctx.moveTo(px + size, py - size);
-                 ctx.lineTo(px - size, py + size);
-                 ctx.stroke();
-             } else if (s.pointStyle === 'plus') {
-                 // Red Plus
-                 ctx.strokeStyle = "red";
-                 ctx.lineWidth = 2;
-                 var size = 5;
-                 ctx.moveTo(px - size, py);
-                 ctx.lineTo(px + size, py);
-                 ctx.moveTo(px, py - size);
-                 ctx.lineTo(px, py + size);
-                 ctx.stroke();
-             } else {
-                 // Default: Black Dot
-                 ctx.fillStyle = "black";
-                 ctx.arc(px, py, 3, 0, 2 * Math.PI); 
-                 ctx.fill();
-             }
+        if (confirm("確定刪除此組數據?")) {
+            datasets.splice(activeIdx, 1);
+            if (activeIdx >= datasets.length) activeIdx = datasets.length - 1;
+            selectDataset(activeIdx);
+            draw_grid();
         }
     }
 
-    // --- 表格操作 ---
-    function renderTable() {
+    // --- Tangent UI Logic ---
+    function addTangent() {
+        var x = parseFloat(document.getElementById("tan_x").value);
+        if (isNaN(x)) { alert("請輸入 X 座標"); return; }
+        
+        var len = parseFloat(document.getElementById("tan_len").value) || 100;
+        var color = document.getElementById("tan_color").value;
+        var width = parseFloat(document.getElementById("tan_width").value) || 2;
+        
+        tangents.push({ x: x, length: len, color: color, width: width });
+        renderTangentList();
+        draw_grid();
+    }
+
+    function renderTangentList() {
+        var container = document.getElementById("tangent_list");
+        container.innerHTML = "";
+        tangents.forEach((t, i) => {
+            var div = document.createElement("div");
+            div.className = "tangent-list-item";
+            div.innerHTML = `<span>X:${t.x}</span> <button onclick="removeTangent(${i})" style="color:red; font-size:0.8em;">刪除</button>`;
+            container.appendChild(div);
+        });
+    }
+
+    function removeTangent(idx) {
+        tangents.splice(idx, 1);
+        renderTangentList();
+        draw_grid();
+    }
+
+    function updateTable() {
         var tbody = document.getElementById("data_rows");
         tbody.innerHTML = "";
-        dataPoints.forEach(function(pt) {
-            addTableRow(pt.x, pt.y);
+        var ds = datasets[activeIdx];
+        
+        ds.points.forEach(function(p, i) {
+            var tr = document.createElement("tr");
+            
+            var tdX = document.createElement("td");
+            var inputX = document.createElement("input");
+            inputX.type = "number"; inputX.step = "any"; inputX.value = p.x;
+            inputX.onchange = function() { ds.points[i].x = parseFloat(this.value); draw_grid(); };
+            tdX.appendChild(inputX);
+            
+            var tdY = document.createElement("td");
+            var inputY = document.createElement("input");
+            inputY.type = "number"; inputY.step = "any"; inputY.value = p.y;
+            inputY.onchange = function() { ds.points[i].y = parseFloat(this.value); draw_grid(); };
+            tdY.appendChild(inputY);
+            
+            var tdDel = document.createElement("td");
+            var btnDel = document.createElement("button");
+            btnDel.innerText = "×";
+            btnDel.style.color = "red";
+            btnDel.onclick = function() { deleteRow(i); };
+            tdDel.appendChild(btnDel);
+            
+            tr.appendChild(tdX);
+            tr.appendChild(tdY);
+            tr.appendChild(tdDel);
+            tbody.appendChild(tr);
         });
-        if (dataPoints.length === 0) addRow();
     }
 
     function addRow() {
-        addTableRow("", "");
+        datasets[activeIdx].points.push({x: 0, y: 0});
+        updateTable();
+        draw_grid();
     }
 
-    function addTableRow(xVal, yVal) {
-        var tbody = document.getElementById("data_rows");
-        var tr = document.createElement("tr");
-        
-        tr.innerHTML = `
-            <td><input type="number" value="${xVal}" step="any" onchange="draw_grid()" placeholder="X"></td>
-            <td><input type="number" value="${yVal}" step="any" onchange="draw_grid()" placeholder="Y"></td>
-            <td><button onclick="deleteRow(this)" style="color:#d9534f; border:none; background:none; font-weight:bold; font-size:1.2em;">&times;</button></td>
-        `;
-        tbody.appendChild(tr);
-    }
-
-    function deleteRow(btn) {
-        var row = btn.parentNode.parentNode;
-        row.parentNode.removeChild(row);
+    function deleteRow(index) {
+        datasets[activeIdx].points.splice(index, 1);
+        updateTable();
         draw_grid();
     }
 
     function clearData() {
-        if(confirm("確定要清空所有數據嗎？")) {
-            document.getElementById("data_rows").innerHTML = "";
-            addRow(); 
+        if(confirm("清空當前數據組的所有點?")) {
+            datasets[activeIdx].points = [];
+            updateTable();
             draw_grid();
         }
     }
 
     function saveImage() {
         var link = document.createElement('a');
-        link.download = 'graph_export.png';
+        link.download = 'chart.png';
         link.href = canvas.toDataURL();
         link.click();
     }
 </script>
-
 </body>
 </html>
