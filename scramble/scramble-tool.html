@@ -1,0 +1,376 @@
+<!DOCTYPE html><html lang="en"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentence Builder Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom scrollbar for the JSON output */
+        pre::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        pre::-webkit-scrollbar-track {
+            background: #1e293b; 
+        }
+        pre::-webkit-scrollbar-thumb {
+            background: #475569; 
+            border-radius: 4px;
+        }
+        pre::-webkit-scrollbar-thumb:hover {
+            background: #64748b; 
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen font-sans text-slate-800 p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto space-y-8">
+        
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-900">Sentence Builder Tool</h1>
+                <p class="text-slate-500 mt-1">
+                    Use <code class="bg-slate-200 px-1 rounded font-bold">|</code> for custom blocks. 
+                    <span class="text-slate-400">(Default is word-by-word)</span>
+                </p>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex items-center gap-4 w-full md:w-auto">
+                <label class="text-sm font-medium text-slate-600 whitespace-nowrap">Starting ID:</label>
+                <input type="number" id="startIdInput" value="500" class="w-24 p-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <!-- LEFT COLUMN: Input Form -->
+            <div class="space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                        <i data-lucide="plus" class="w-5 h-5 text-blue-600"></i>
+                        New Sentence
+                    </h2>
+                    
+                    <form id="sentenceForm" class="space-y-4">
+                        <!-- Level Select -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Difficulty Level</label>
+                            <select id="levelInput" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                                <option value="0">Level 0 (Chunks / Simple)</option>
+                                <option value="1">Level 1 (Word by Word)</option>
+                                <option value="2">Level 2 (Proper Nouns)</option>
+                                <option value="3">Level 3 (Complex/Adjectives)</option>
+                            </select>
+                        </div>
+
+                        <!-- Sentence Input -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">
+                                Sentence 
+                                <span class="text-xs font-normal text-slate-500 ml-1">(Type normally to split by space, or use <span class="font-mono font-bold text-blue-600">|</span> for chunks)</span>
+                            </label>
+                            <input type="text" id="rawInput" placeholder="e.g. The big dog chased the cat." class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm" autocomplete="off">
+                            <p class="text-xs text-slate-500 mt-1">
+                                Correct sentence will be: <span id="cleanSentencePreview" class="font-medium text-slate-800 italic">...</span>
+                            </p>
+                        </div>
+
+                        <!-- Live Preview of Blocks -->
+                        <div id="blockPreviewContainer" class="hidden bg-blue-50 p-4 rounded-lg border border-blue-100 transition-all">
+                            <span class="text-xs font-bold text-blue-600 uppercase tracking-wide">Block Preview</span>
+                            <div id="blocksWrapper" class="flex flex-wrap gap-2 mt-2">
+                                <!-- Blocks injected here -->
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Hint -->
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Hint</label>
+                                <input type="text" id="hintInput" placeholder="e.g. Subject + Verb..." class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <!-- Feedback -->
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Success Message</label>
+                                <input type="text" id="feedbackInput" value="Correct!" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                        </div>
+
+                        <button type="submit" id="addButton" disabled="" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            Add Sentence
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: List & Output -->
+            <div class="space-y-6">
+                
+                <!-- List of Added Questions -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-96 flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-semibold">
+                            Added Sentences <span id="countBadge" class="text-sm font-normal text-slate-500">(0)</span>
+                        </h2>
+                        <button id="clearAllBtn" class="text-xs text-red-500 hover:text-red-700 hover:underline hidden">
+                            Clear All
+                        </button>
+                    </div>
+                    
+                    <div id="questionsList" class="overflow-y-auto flex-1 space-y-3 pr-2">
+                        <!-- Empty State -->
+                        <div class="h-full flex flex-col items-center justify-center text-slate-400">
+                            <i data-lucide="file-json" class="w-12 h-12 mb-2 opacity-20"></i>
+                            <p>No sentences added yet.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- JSON Output Area -->
+                <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg">
+                    <div class="bg-slate-800 p-3 flex items-center justify-between border-b border-slate-700">
+                        <span class="text-slate-300 text-sm font-mono">output.json (One-liner Objects)</span>
+                        <button id="copyBtn" class="flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold transition-all bg-blue-600 hover:bg-blue-500 text-white">
+                            <i data-lucide="copy" class="w-3 h-3"></i>
+                            <span id="copyBtnText">Copy JSON</span>
+                        </button>
+                    </div>
+                    <div class="p-4 overflow-x-auto">
+                        <pre id="jsonOutput" class="text-xs font-mono text-green-400 whitespace-pre max-h-48 overflow-y-auto">// Add sentences to see JSON here...</pre>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- State ---
+        let questions = [];
+        let currentBlocks = [];
+        let currentCleanSentence = "";
+
+        // --- DOM Elements ---
+        const startIdInput = document.getElementById('startIdInput');
+        const levelInput = document.getElementById('levelInput');
+        const rawInput = document.getElementById('rawInput');
+        const hintInput = document.getElementById('hintInput');
+        const feedbackInput = document.getElementById('feedbackInput');
+        const addButton = document.getElementById('addButton');
+        
+        const cleanSentencePreview = document.getElementById('cleanSentencePreview');
+        const blockPreviewContainer = document.getElementById('blockPreviewContainer');
+        const blocksWrapper = document.getElementById('blocksWrapper');
+        
+        const questionsList = document.getElementById('questionsList');
+        const countBadge = document.getElementById('countBadge');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const jsonOutput = document.getElementById('jsonOutput');
+        const copyBtn = document.getElementById('copyBtn');
+        const copyBtnText = document.getElementById('copyBtnText');
+
+        // --- Icons Init ---
+        lucide.createIcons();
+
+        // --- Event Listeners ---
+        
+        // 1. Input Handling (Real-time preview)
+        rawInput.addEventListener('input', () => {
+            const raw = rawInput.value;
+            
+            if (!raw.trim()) {
+                currentBlocks = [];
+                currentCleanSentence = "";
+                blockPreviewContainer.classList.add('hidden');
+                cleanSentencePreview.innerText = "...";
+                addButton.disabled = true;
+                return;
+            }
+
+            // --- LOGIC CHANGE HERE ---
+            if (raw.includes('|')) {
+                // If pipe is present, split by pipe
+                currentBlocks = raw.split('|').map(s => s.trim()).filter(s => s.length > 0);
+            } else {
+                // If NO pipe, split by spaces (word by word)
+                // We use regex \s+ to handle multiple spaces gracefully
+                currentBlocks = raw.trim().split(/\s+/);
+            }
+
+            currentCleanSentence = currentBlocks.join(' ');
+
+            // Update UI
+            cleanSentencePreview.innerText = currentCleanSentence;
+            
+            // Render Blocks Preview
+            blocksWrapper.innerHTML = '';
+            if (currentBlocks.length > 0) {
+                blockPreviewContainer.classList.remove('hidden');
+                addButton.disabled = false;
+                
+                currentBlocks.forEach(block => {
+                    const span = document.createElement('span');
+                    span.className = "bg-white text-blue-800 px-3 py-1 rounded-md shadow-sm border border-blue-200 text-sm font-medium";
+                    span.innerText = block;
+                    blocksWrapper.appendChild(span);
+                });
+            } else {
+                blockPreviewContainer.classList.add('hidden');
+                addButton.disabled = true;
+            }
+        });
+
+        // 2. Add Sentence
+        document.getElementById('sentenceForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (currentBlocks.length === 0) return;
+
+            const startId = parseInt(startIdInput.value) || 0;
+            // Calculate ID based on startId + current length
+            const newId = startId + questions.length;
+
+            const newQuestion = {
+                id: newId,
+                level: parseInt(levelInput.value),
+                correct: currentCleanSentence,
+                blocks: [...currentBlocks], // Create a copy
+                hint: hintInput.value || "Arrange the blocks correctly.",
+                feedback: feedbackInput.value
+            };
+
+            questions.push(newQuestion);
+            
+            // Reset Form Inputs (keep level and feedback)
+            rawInput.value = '';
+            hintInput.value = '';
+            
+            // Reset State
+            currentBlocks = [];
+            currentCleanSentence = "";
+            blockPreviewContainer.classList.add('hidden');
+            cleanSentencePreview.innerText = "...";
+            addButton.disabled = true;
+
+            renderList();
+            renderJSON();
+        });
+
+        // 3. Clear All
+        clearAllBtn.addEventListener('click', () => {
+            if(confirm('Are you sure you want to delete all sentences?')) {
+                questions = [];
+                renderList();
+                renderJSON();
+            }
+        });
+
+        // 4. Copy JSON
+        copyBtn.addEventListener('click', () => {
+            const text = jsonOutput.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = copyBtnText.innerText;
+                const originalClass = copyBtn.className;
+                
+                // Change style temporarily
+                copyBtn.className = "flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold transition-all bg-green-500 text-white";
+                copyBtnText.innerText = "Copied!";
+                
+                // Revert after 2 seconds
+                setTimeout(() => {
+                    copyBtn.className = originalClass;
+                    copyBtnText.innerText = originalText;
+                }, 2000);
+            });
+        });
+
+        // 5. Update IDs when Start ID changes
+        startIdInput.addEventListener('input', () => {
+            // Re-calculate all IDs
+            const startId = parseInt(startIdInput.value) || 0;
+            questions = questions.map((q, index) => {
+                return { ...q, id: startId + index };
+            });
+            renderList();
+            renderJSON();
+        });
+
+        // --- Render Functions ---
+
+        function renderList() {
+            questionsList.innerHTML = '';
+            countBadge.innerText = `(${questions.length})`;
+
+            if (questions.length === 0) {
+                clearAllBtn.classList.add('hidden');
+                questionsList.innerHTML = `
+                    <div class="h-full flex flex-col items-center justify-center text-slate-400">
+                        <i data-lucide="file-json" class="w-12 h-12 mb-2 opacity-20"></i>
+                        <p>No sentences added yet.</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            clearAllBtn.classList.remove('hidden');
+
+            questions.forEach((q, index) => {
+                // Determine badge color based on level
+                let levelClass = 'bg-orange-100 text-orange-700';
+                if (q.level === 0) levelClass = 'bg-green-100 text-green-700';
+                else if (q.level === 1) levelClass = 'bg-blue-100 text-blue-700';
+                else if (q.level === 2) levelClass = 'bg-purple-100 text-purple-700';
+
+                const item = document.createElement('div');
+                item.className = "group flex items-start justify-between p-3 bg-slate-50 rounded-lg border border-slate-100 hover:border-blue-200 transition-colors";
+                item.innerHTML = `
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-xs font-bold bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">ID: ${q.id}</span>
+                            <span class="text-xs font-bold px-1.5 py-0.5 rounded ${levelClass}">Lvl ${q.level}</span>
+                        </div>
+                        <p class="font-medium text-slate-800">${q.correct}</p>
+                        <p class="text-xs text-slate-500 mt-1">Blocks: [${q.blocks.join(', ')}]</p>
+                    </div>
+                    <button onclick="deleteQuestion(${index})" class="text-slate-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                `;
+                questionsList.appendChild(item);
+            });
+            lucide.createIcons();
+        }
+
+        function renderJSON() {
+            if (questions.length === 0) {
+                jsonOutput.innerText = "// Add sentences to see JSON here...";
+            } else {
+                // Map over questions and stringify each one individually to keep it on one line
+                const lines = questions.map(q => JSON.stringify(q));
+                
+                // Join them with a comma and a newline
+                const output = lines.join(',\n');
+                
+                jsonOutput.innerText = output;
+            }
+        }
+
+        // Exposed global function for the inline onclick handler
+        window.deleteQuestion = function(index) {
+            questions.splice(index, 1);
+            
+            // Re-index IDs after deletion to keep them sequential
+            const startId = parseInt(startIdInput.value) || 0;
+            questions = questions.map((q, idx) => {
+                return { ...q, id: startId + idx };
+            });
+
+            renderList();
+            renderJSON();
+        };
+
+    </script>
+
+
+</body></html>
