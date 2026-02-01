@@ -1,0 +1,392 @@
+<!DOCTYPE html><html lang="en"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher's Pie Chart Generator</title>
+    <style>
+        :root {
+            --border-color: #000;
+            --bg-color: #fff;
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+            color: #000;
+        }
+
+        h1 {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        /* --- Controls Section --- */
+        .controls {
+            flex: 1.2;
+            min-width: 450px; /* Wider to fit the table */
+            background: #fff;
+            padding: 20px;
+            border: 2px solid #000;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label { font-weight: bold; }
+
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #000;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        /* Data Table Styling */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .data-table th {
+            text-align: left;
+            border-bottom: 2px solid #000;
+            padding: 5px;
+        }
+
+        .data-table td {
+            padding: 5px;
+            vertical-align: middle;
+        }
+
+        .data-table input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .col-label { width: 35%; }
+        .col-val { width: 15%; }
+        .col-opt { width: 10%; text-align: center; }
+        .col-act { width: 10%; text-align: center; }
+
+        /* Buttons */
+        button {
+            background: #fff;
+            border: 2px solid #000;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: inherit;
+            transition: background 0.2s;
+            text-transform: uppercase;
+            font-size: 12px;
+        }
+
+        button:hover { background: #e0e0e0; }
+
+        button.remove-btn {
+            border: 1px solid #000;
+            padding: 4px 8px;
+            color: red;
+        }
+
+        button.download-btn {
+            background: #000;
+            color: #fff;
+            width: 100%;
+            padding: 15px;
+            font-size: 14px;
+            margin-top: auto;
+        }
+        
+        button.download-btn:hover { background: #333; }
+
+        /* --- Preview Section --- */
+        .preview {
+            flex: 1;
+            min-width: 350px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #fff;
+            border: 2px solid #000;
+            padding: 20px;
+            justify-content: center;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+            border: 1px dashed #ddd;
+        }
+        
+        .global-options {
+            padding: 10px;
+            background: #eee;
+            border: 1px solid #000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Pie Chart Worksheet Generator</h1>
+
+    <div class="container">
+        <!-- Controls Side -->
+        <div class="controls">
+            
+            <div class="input-group">
+                <label>1. Chart Title</label>
+                <input type="text" id="chartTitle" value="Class Survey" oninput="drawChart()">
+            </div>
+
+            <div class="input-group">
+                <label>2. Global Settings</label>
+                <div class="global-options">
+                    <input type="checkbox" id="showTotal" checked="" onchange="drawChart()">
+                    <label for="showTotal">Display Total Quantity Subtitle</label>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>3. Data &amp; Display Options</label>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th class="col-label">Label</th>
+                            <th class="col-val">Value</th>
+                            <th class="col-opt" title="Show Quantity">Qty</th>
+                            <th class="col-opt" title="Show Degrees">Deg</th>
+                            <th class="col-opt" title="Show Percentage">%</th>
+                            <th class="col-act"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Rows generated by JS -->
+                    </tbody>
+                </table>
+                <button onclick="addRow()" style="margin-top: 10px;">+ Add Row</button>
+            </div>
+
+            <button class="download-btn" onclick="downloadChart()">Download Chart Image</button>
+        </div>
+
+        <!-- Preview Side -->
+        <div class="preview">
+            <canvas id="chartCanvas" width="600" height="700"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('chartCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Initial Data
+        const initialData = [
+            { label: "Walk", value: 12, q: true, d: false, p: false },
+            { label: "Bus", value: 8, q: true, d: true, p: false },
+            { label: "Car", value: 4, q: false, d: false, p: true }
+        ];
+
+        window.onload = function() {
+            initialData.forEach(d => addRow(d.label, d.value, d.q, d.d, d.p));
+            drawChart();
+        };
+
+        function addRow(lbl = "", val = "", showQ = true, showD = true, showP = false) {
+            const tbody = document.getElementById('tableBody');
+            const tr = document.createElement('tr');
+            
+            tr.innerHTML = `
+                <td><input type="text" class="lbl-in" value="${lbl}" placeholder="Label" oninput="drawChart()"></td>
+                <td><input type="number" class="val-in" value="${val}" placeholder="0" oninput="drawChart()"></td>
+                <td class="col-opt"><input type="checkbox" class="chk-q" ${showQ ? 'checked' : ''} onchange="drawChart()"></td>
+                <td class="col-opt"><input type="checkbox" class="chk-d" ${showD ? 'checked' : ''} onchange="drawChart()"></td>
+                <td class="col-opt"><input type="checkbox" class="chk-p" ${showP ? 'checked' : ''} onchange="drawChart()"></td>
+                <td class="col-act"><button class="remove-btn" onclick="removeRow(this)">X</button></td>
+            `;
+            tbody.appendChild(tr);
+            drawChart(); // Update immediately when adding
+        }
+
+        function removeRow(btn) {
+            const row = btn.closest('tr');
+            const tbody = document.getElementById('tableBody');
+            if (tbody.children.length > 1) {
+                tbody.removeChild(row);
+                drawChart();
+            } else {
+                alert("You need at least one data point.");
+            }
+        }
+
+        function drawChart() {
+            // 1. Gather Data
+            const title = document.getElementById('chartTitle').value;
+            const showTotal = document.getElementById('showTotal').checked;
+            
+            const rows = document.querySelectorAll('#tableBody tr');
+            let data = [];
+            let total = 0;
+
+            rows.forEach(row => {
+                const label = row.querySelector('.lbl-in').value;
+                const value = parseFloat(row.querySelector('.val-in').value);
+                const showQ = row.querySelector('.chk-q').checked;
+                const showD = row.querySelector('.chk-d').checked;
+                const showP = row.querySelector('.chk-p').checked;
+
+                if (!isNaN(value) && value > 0) {
+                    data.push({ 
+                        label: label || '?', 
+                        value: value,
+                        showQ, showD, showP 
+                    });
+                    total += value;
+                }
+            });
+
+            // 2. Clear Canvas
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            if (total === 0) return; // Don't draw if empty
+
+            // 3. Setup Geometry
+            const centerX = canvas.width / 2;
+            const centerY = (canvas.height / 2) + 20; 
+            const radius = 200;
+
+            // 4. Draw Title & Subtitle
+            ctx.fillStyle = '#000000';
+            ctx.textAlign = 'center';
+            
+            // Title
+            ctx.font = 'bold 28px Courier New';
+            ctx.fillText(title, centerX, 50);
+            
+            // Subtitle (Total)
+            if (showTotal) {
+                ctx.font = '18px Courier New';
+                ctx.fillText(`Total Quantity: ${total}`, centerX, 80);
+            }
+
+            // 5. Draw Pie Slices
+            let startAngle = -0.5 * Math.PI; // Start at top (12 o'clock)
+
+            data.forEach(slice => {
+                const sliceAngle = (slice.value / total) * 2 * Math.PI;
+                const endAngle = startAngle + sliceAngle;
+
+                // Draw Slice Path
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.closePath();
+
+                // Style: White fill, Black stroke
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#000000';
+                ctx.stroke();
+
+                // 6. Labels and Metrics
+                const midAngle = startAngle + (sliceAngle / 2);
+                
+                // --- A. Outer Label (Name) ---
+                const labelRadius = radius + 30; 
+                const labelX = centerX + Math.cos(midAngle) * labelRadius;
+                const labelY = centerY + Math.sin(midAngle) * labelRadius;
+
+                // Draw connecting line
+                const lineStartX = centerX + Math.cos(midAngle) * radius;
+                const lineStartY = centerY + Math.sin(midAngle) * radius;
+                
+                ctx.beginPath();
+                ctx.moveTo(lineStartX, lineStartY);
+                ctx.lineTo(labelX, labelY);
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // Draw Name Text
+                ctx.fillStyle = '#000000';
+                ctx.font = 'bold 16px Courier New';
+                
+                // Alignment based on side
+                if (midAngle > 0.5 * Math.PI && midAngle < 1.5 * Math.PI) {
+                     ctx.textAlign = 'right';
+                     ctx.fillText(slice.label, labelX - 5, labelY + 4);
+                } else {
+                     ctx.textAlign = 'left';
+                     ctx.fillText(slice.label, labelX + 5, labelY + 4);
+                }
+
+                // --- B. Inner Metrics (Based on specific checkboxes) ---
+                if (sliceAngle > 0.15) { // Only draw if slice isn't tiny
+                    const innerRadius = radius * 0.6;
+                    const innerX = centerX + Math.cos(midAngle) * innerRadius;
+                    const innerY = centerY + Math.sin(midAngle) * innerRadius;
+
+                    let metrics = [];
+                    if (slice.showQ) metrics.push(`${slice.value}`);
+                    if (slice.showD) metrics.push(`${((slice.value / total) * 360).toFixed(1)}°`);
+                    if (slice.showP) metrics.push(`${((slice.value / total) * 100).toFixed(1)}%`);
+
+                    if (metrics.length > 0) {
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.font = '14px Courier New';
+                        
+                        const lineHeight = 16;
+                        const totalHeight = (metrics.length - 1) * lineHeight;
+                        let startY = innerY - (totalHeight / 2);
+
+                        metrics.forEach((text, index) => {
+                            ctx.fillText(text, innerX, startY + (index * lineHeight));
+                        });
+                    }
+                }
+
+                startAngle = endAngle;
+            });
+        }
+
+        function downloadChart() {
+            drawChart();
+            const link = document.createElement('a');
+            const title = document.getElementById('chartTitle').value || 'chart';
+            link.download = `${title.replace(/\s+/g, '_')}_pie_chart.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    </script>
+
+
+</body></html>
