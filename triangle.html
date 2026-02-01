@@ -1,0 +1,545 @@
+<!DOCTYPE html><html lang="zh-TW"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>教師專用三角形產生器</title>
+    <style>
+        :root {
+            --border-color: #000;
+            --bg-color: #fff;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', 'PingFang TC', 'Courier New', monospace;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+            color: #000;
+        }
+
+        h1 {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        /* --- Controls Section --- */
+        .controls {
+            flex: 1.2;
+            min-width: 450px;
+            background: #fff;
+            padding: 20px;
+            border: 2px solid #000;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .section-title {
+            font-weight: bold;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .input-group {
+            flex: 1;
+        }
+
+        label { 
+            display: block; 
+            font-size: 12px; 
+            font-weight: bold; 
+            margin-bottom: 3px;
+        }
+
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #000;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        /* Data Table Styling */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .data-table th {
+            text-align: left;
+            border-bottom: 2px solid #000;
+            padding: 5px;
+            background: #eee;
+        }
+
+        .data-table td {
+            padding: 6px 5px;
+            border-bottom: 1px solid #ddd;
+            vertical-align: middle;
+        }
+
+        .data-table input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .col-item { width: 20%; font-weight: bold; }
+        .col-calc { width: 20%; color: #555; font-family: monospace;}
+        .col-chk { width: 10%; text-align: center; }
+        .col-custom { width: 50%; }
+
+        /* Buttons */
+        button.download-btn {
+            background: #000;
+            color: #fff;
+            width: 100%;
+            padding: 15px;
+            font-size: 14px;
+            margin-top: auto;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        button.download-btn:hover { background: #333; }
+
+        /* --- Preview Section --- */
+        .preview {
+            flex: 1;
+            min-width: 350px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #fff;
+            border: 2px solid #000;
+            padding: 20px;
+            justify-content: center;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+            border: 1px dashed #ddd;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #666;
+            margin-top: -15px;
+            margin-bottom: 15px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>三角形產生器</h1>
+
+    <div class="container">
+        <!-- Controls Side -->
+        <div class="controls">
+            
+            <div>
+                <label>圖表標題</label>
+                <input type="text" id="chartTitle" value="求 x 的角度" oninput="drawChart()">
+            </div>
+
+            <!-- Geometry Definition -->
+            <div>
+                <div class="section-title">1. 定義形狀 (SAS)</div>
+                <p class="hint">輸入底邊、左下角角度和左邊長來構建三角形。</p>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>底邊長 (c)</label>
+                        <input type="number" id="baseLen" value="10" oninput="drawChart()">
+                    </div>
+                    <div class="input-group">
+                        <label>左下角 (°)</label>
+                        <input type="number" id="leftAngle" value="60" oninput="drawChart()">
+                    </div>
+                    <div class="input-group">
+                        <label>左邊長 (b)</label>
+                        <input type="number" id="leftLen" value="10" oninput="drawChart()">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vertex Names -->
+            <div>
+                <div class="section-title">2. 頂點名稱</div>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>頂點 1 (左下)</label>
+                        <input type="text" id="v1Name" value="A" oninput="drawChart()">
+                    </div>
+                    <div class="input-group">
+                        <label>頂點 2 (頂部)</label>
+                        <input type="text" id="v2Name" value="B" oninput="drawChart()">
+                    </div>
+                    <div class="input-group">
+                        <label>頂點 3 (右下)</label>
+                        <input type="text" id="v3Name" value="C" oninput="drawChart()">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Labels Table -->
+            <div>
+                <div class="section-title">3. 標籤顯示設定</div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th class="col-item">部位</th>
+                            <th class="col-calc">計算值</th>
+                            <th class="col-chk">顯示</th>
+                            <th class="col-custom">自訂文字 (留空則顯示數值)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="labelTableBody">
+                        <!-- Rows will be injected by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <button class="download-btn" onclick="downloadChart()">下載圖表圖片</button>
+        </div>
+
+        <!-- Preview Side -->
+        <div class="preview">
+            <canvas id="chartCanvas" width="600" height="600"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('chartCanvas');
+        const ctx = canvas.getContext('2d');
+        const fontBase = '"Microsoft JhengHei", "PingFang TC", "Courier New", sans-serif';
+
+        // State for the checkboxes and custom inputs
+        const labelState = {
+            angle1: { show: true, custom: "60°" }, // Left Bottom
+            angle2: { show: true, custom: "" },    // Top
+            angle3: { show: true, custom: "" },    // Right Bottom
+            side1:  { show: true, custom: "10" },  // Left (b)
+            side2:  { show: true, custom: "" },    // Right (a)
+            side3:  { show: true, custom: "10" }   // Bottom (c)
+        };
+
+        // Helper to create table rows
+        function createTable() {
+            const tbody = document.getElementById('labelTableBody');
+            tbody.innerHTML = '';
+
+            const rows = [
+                { id: 'angle1', label: '左下角' },
+                { id: 'angle2', label: '頂角' },
+                { id: 'angle3', label: '右下角' },
+                { id: 'side1', label: '左邊' },
+                { id: 'side2', label: '右邊' },
+                { id: 'side3', label: '底邊' },
+            ];
+
+            rows.forEach(r => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${r.label}</td>
+                    <td id="calc-${r.id}">-</td>
+                    <td class="col-chk">
+                        <input type="checkbox" 
+                               ${labelState[r.id].show ? 'checked' : ''} 
+                               onchange="updateState('${r.id}', 'show', this.checked)">
+                    </td>
+                    <td>
+                        <input type="text" 
+                               value="${labelState[r.id].custom}" 
+                               placeholder="例如: x, ?, 5cm"
+                               oninput="updateState('${r.id}', 'custom', this.value)">
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateState(id, key, value) {
+            labelState[id][key] = value;
+            drawChart();
+        }
+
+        window.onload = function() {
+            createTable();
+            drawChart();
+        };
+
+        function drawChart() {
+            // 1. Get Inputs
+            const title = document.getElementById('chartTitle').value;
+            const v1Name = document.getElementById('v1Name').value; // Left Bottom
+            const v2Name = document.getElementById('v2Name').value; // Top
+            const v3Name = document.getElementById('v3Name').value; // Right Bottom
+
+            let c = parseFloat(document.getElementById('baseLen').value) || 10; // Bottom
+            let A_deg = parseFloat(document.getElementById('leftAngle').value) || 60; // Left Angle
+            let b = parseFloat(document.getElementById('leftLen').value) || 10; // Left Side
+
+            // Prevent breaking math
+            if (c <= 0) c = 10;
+            if (b <= 0) b = 10;
+            if (A_deg <= 0 || A_deg >= 180) A_deg = 60;
+
+            const A_rad = A_deg * (Math.PI / 180);
+
+            // 2. Calculate Coordinates (Unscaled)
+            const p1 = { x: 0, y: 0 };
+            const p3 = { x: c, y: 0 };
+            const p2 = {
+                x: b * Math.cos(A_rad),
+                y: b * Math.sin(A_rad)
+            };
+
+            // 3. Calculate Missing Geometry
+            const a = Math.sqrt(Math.pow(p2.x - p3.x, 2) + Math.pow(p2.y - p3.y, 2));
+            
+            // Angles
+            const C_rad = Math.acos((Math.pow(a, 2) + Math.pow(c, 2) - Math.pow(b, 2)) / (2 * a * c));
+            const C_deg = C_rad * (180 / Math.PI);
+            const B_deg = 180 - A_deg - C_deg;
+
+            // Update Table "Calculated" Values
+            document.getElementById('calc-side1').innerText = parseFloat(b.toFixed(2));
+            document.getElementById('calc-side2').innerText = parseFloat(a.toFixed(2));
+            document.getElementById('calc-side3').innerText = parseFloat(c.toFixed(2));
+            document.getElementById('calc-angle1').innerText = Math.round(A_deg) + '°';
+            document.getElementById('calc-angle2').innerText = Math.round(B_deg) + '°';
+            document.getElementById('calc-angle3').innerText = Math.round(C_deg) + '°';
+
+            // 4. Setup Canvas & Scaling
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const minX = Math.min(p1.x, p2.x, p3.x);
+            const maxX = Math.max(p1.x, p2.x, p3.x);
+            const minY = Math.min(p1.y, p2.y, p3.y); 
+            const maxY = Math.max(p1.y, p2.y, p3.y);
+
+            const triW = maxX - minX;
+            const triH = maxY - minY;
+
+            const padding = 80;
+            const availW = canvas.width - (padding * 2);
+            const availH = canvas.height - (padding * 2) - 50; 
+
+            const scaleX = availW / triW;
+            const scaleY = availH / triH;
+            const scale = Math.min(scaleX, scaleY);
+
+            const offsetX = (canvas.width - (triW * scale)) / 2 - (minX * scale);
+            const offsetY = (canvas.height - (triH * scale)) / 2 + (maxY * scale) + 30; 
+
+            function toCanvas(pt) {
+                return {
+                    x: pt.x * scale + offsetX,
+                    y: offsetY - (pt.y * scale) 
+                };
+            }
+
+            const cP1 = toCanvas(p1);
+            const cP2 = toCanvas(p2);
+            const cP3 = toCanvas(p3);
+
+            // Calculate Triangle Center (Centroid) for direction logic
+            const center = {
+                x: (cP1.x + cP2.x + cP3.x) / 3,
+                y: (cP1.y + cP2.y + cP3.y) / 3
+            };
+
+            // 5. Draw Title
+            ctx.fillStyle = '#000';
+            ctx.textAlign = 'center';
+            ctx.font = `bold 24px ${fontBase}`;
+            ctx.fillText(title, canvas.width / 2, 40);
+
+            // 6. Draw Triangle
+            ctx.beginPath();
+            ctx.moveTo(cP1.x, cP1.y);
+            ctx.lineTo(cP2.x, cP2.y);
+            ctx.lineTo(cP3.x, cP3.y);
+            ctx.closePath();
+            
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#000';
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(0,0,0,0.02)';
+            ctx.fill();
+
+            // 7. Draw Vertex Labels
+            ctx.fillStyle = '#000';
+            ctx.font = `bold 18px ${fontBase}`;
+            
+            drawVertexLabel(v1Name, cP1, center);
+            drawVertexLabel(v2Name, cP2, center);
+            drawVertexLabel(v3Name, cP3, center);
+
+            // 8. Draw Angle Arcs & Labels
+            ctx.lineWidth = 1.5;
+
+            if (labelState.angle1.show) {
+                drawAngleArc(cP1, cP3, cP2, labelState.angle1.custom || Math.round(A_deg) + "°");
+            }
+            if (labelState.angle2.show) {
+                drawAngleArc(cP2, cP1, cP3, labelState.angle2.custom || Math.round(B_deg) + "°");
+            }
+            if (labelState.angle3.show) {
+                drawAngleArc(cP3, cP2, cP1, labelState.angle3.custom || Math.round(C_deg) + "°");
+            }
+
+            // 9. Draw Side Labels (Using Center to force outside placement)
+            ctx.font = `16px ${fontBase}`;
+            if (labelState.side1.show) {
+                drawSideLabel(cP1, cP2, labelState.side1.custom || parseFloat(b.toFixed(1)), center);
+            }
+            if (labelState.side2.show) {
+                drawSideLabel(cP2, cP3, labelState.side2.custom || parseFloat(a.toFixed(1)), center);
+            }
+            if (labelState.side3.show) {
+                drawSideLabel(cP1, cP3, labelState.side3.custom || parseFloat(c.toFixed(1)), center);
+            }
+        }
+
+        // --- Drawing Helpers ---
+
+        function drawVertexLabel(text, pt, center) {
+            if (!text) return;
+            const dx = pt.x - center.x;
+            const dy = pt.y - center.y;
+            const len = Math.sqrt(dx*dx + dy*dy);
+            const offset = 25;
+            const tx = pt.x + (dx/len) * offset;
+            const ty = pt.y + (dy/len) * offset;
+            
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, tx, ty);
+        }
+
+        function drawAngleArc(center, pA, pB, text) {
+            const radius = 35;
+            const angA = Math.atan2(pA.y - center.y, pA.x - center.x);
+            const angB = Math.atan2(pB.y - center.y, pB.x - center.x);
+
+            ctx.beginPath();
+            let useCCW = false;
+            let dist = angB - angA;
+            if (dist < 0) dist += 2 * Math.PI;
+            
+            if (dist > Math.PI) {
+                useCCW = true; 
+            }
+
+            ctx.arc(center.x, center.y, radius, angA, angB, useCCW);
+            ctx.stroke();
+
+            // Vector Bisector for text
+            const vAx = (pA.x - center.x);
+            const vAy = (pA.y - center.y);
+            const lenA = Math.sqrt(vAx*vAx + vAy*vAy);
+            
+            const vBx = (pB.x - center.x);
+            const vBy = (pB.y - center.y);
+            const lenB = Math.sqrt(vBx*vBx + vBy*vBy);
+
+            const bisX = (vAx/lenA) + (vBx/lenB);
+            const bisY = (vAy/lenA) + (vBy/lenB);
+            const bisLen = Math.sqrt(bisX*bisX + bisY*bisY);
+            
+            const textDist = 55;
+            const tx = center.x + (bisX/bisLen) * textDist;
+            const ty = center.y + (bisY/bisLen) * textDist;
+
+            ctx.fillStyle = '#000';
+            ctx.font = `14px ${fontBase}`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, tx, ty);
+        }
+
+        // UPDATED: Now accepts 'center' to calculate outward direction automatically
+        function drawSideLabel(pStart, pEnd, text, center) {
+            const midX = (pStart.x + pEnd.x) / 2;
+            const midY = (pStart.y + pEnd.y) / 2;
+            
+            // Edge vector
+            const dx = pEnd.x - pStart.x;
+            const dy = pEnd.y - pStart.y;
+            
+            // Calculate Normal Vector (Perpendicular)
+            // Initial guess: (-dy, dx)
+            let nx = -dy;
+            let ny = dx;
+            
+            // Normalize
+            const len = Math.sqrt(nx*nx + ny*ny);
+            nx /= len;
+            ny /= len;
+
+            // Vector from Center to Midpoint
+            const cx = midX - center.x;
+            const cy = midY - center.y;
+
+            // Check direction: Dot product
+            // If dot product is negative, normal points towards center. Flip it.
+            if (nx * cx + ny * cy < 0) {
+                nx = -nx;
+                ny = -ny;
+            }
+
+            const offset = 25; // Fixed positive offset (always outward)
+            const textX = midX + nx * offset;
+            const textY = midY + ny * offset;
+
+            ctx.fillStyle = '#000';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            const width = ctx.measureText(text).width;
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(textX - width/2 - 2, textY - 8, width + 4, 16);
+            
+            ctx.fillStyle = '#000';
+            ctx.fillText(text, textX, textY);
+        }
+
+        function downloadChart() {
+            drawChart();
+            const link = document.createElement('a');
+            const title = document.getElementById('chartTitle').value || 'triangle';
+            link.download = `${title.replace(/\s+/g, '_')}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    </script>
+
+
+</body></html>
