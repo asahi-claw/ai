@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVO Sentence Builder</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: white;
+            width: 90%;
+            max-width: 700px;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        h2 { color: #374151; margin-bottom: 5px; }
+        p { color: #6b7280; margin-bottom: 20px; }
+
+        /* --- MENU STYLES --- */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .level-btn {
+            background: white;
+            border: 2px solid #e5e7eb;
+            padding: 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .level-btn:hover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+            transform: translateY(-2px);
+        }
+
+        .level-title {
+            display: block;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #1f2937;
+            margin-bottom: 5px;
+        }
+
+        .level-desc {
+            display: block;
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+
+        /* --- GAME STYLES --- */
+        .progress {
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: #9ca3af;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #drop-zone {
+            min-height: 70px;
+            border: 2px dashed #93c5fd;
+            background-color: #eff6ff;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            padding: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #word-bank {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            min-height: 50px;
+            margin-bottom: 25px;
+        }
+
+        .word-card {
+            background-color: white;
+            border: 1px solid #d1d5db;
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #374151;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .word-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-color: #9ca3af;
+        }
+
+        #drop-zone .word-card {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #2563eb;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin: 5px;
+        }
+
+        #check-btn { background-color: #10b981; color: white; }
+        #check-btn:hover { background-color: #059669; }
+
+        #next-btn { background-color: #3b82f6; color: white; }
+        #next-btn:hover { background-color: #2563eb; }
+
+        #restart-btn { background-color: #6366f1; color: white; }
+        #restart-btn:hover { background-color: #4f46e5; }
+        
+        #menu-btn { background-color: #9ca3af; color: white; }
+        #menu-btn:hover { background-color: #6b7280; }
+
+        .hidden { display: none !important; }
+
+        #feedback-area {
+            margin-top: 20px;
+            min-height: 24px;
+            font-weight: bold;
+        }
+        .success { color: #059669; }
+        .error { color: #dc2626; }
+
+        /* Mobile adjustment for menu */
+        @media (max-width: 500px) {
+            .menu-grid { grid-template-columns: 1fr; }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <!-- MENU SCREEN -->
+    <div id="menu-screen">
+        <h2>Select Difficulty</h2>
+        <p>Choose a level to begin practicing.</p>
+        
+        <div class="menu-grid">
+            <button class="level-btn" onclick="startGame(0)">
+                <span class="level-title">Level 0: Beginner</span>
+                <span class="level-desc">3 Big Blocks (S-V-O)</span>
+            </button>
+            <button class="level-btn" onclick="startGame(1)">
+                <span class="level-title">Level 1: Simple</span>
+                <span class="level-desc">Basic sentences, word by word</span>
+            </button>
+            <button class="level-btn" onclick="startGame(2)">
+                <span class="level-title">Level 2: Names</span>
+                <span class="level-desc">Proper nouns & places</span>
+            </button>
+            <button class="level-btn" onclick="startGame(3)">
+                <span class="level-title">Level 3: Advanced</span>
+                <span class="level-desc">Adjectives & longer sentences</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="game-screen" class="hidden">
+        <h2>SVO Practice Game</h2>
+        <p>Reorder the words to form a correct sentence.</p>
+        
+        <div class="progress">
+            Question <span id="current-q">1</span> / <span id="total-q">0</span>
+        </div>
+
+        <div id="drop-zone"></div>
+        <div id="word-bank"></div>
+
+        <button id="check-btn" class="btn">Check Answer</button>
+        <button id="next-btn" class="btn hidden">Next Question</button>
+        <button id="restart-btn" class="btn hidden">Play Again</button>
+        <button id="menu-btn" class="btn hidden" onclick="showMenu()">Main Menu</button>
+
+        <div id="feedback-area"></div>
+    </div>
+</div>
+
+<script src="questions.js"></script>
+
+<script>
+    // --- CONFIGURATION ---
+    const QUESTIONS_PER_SESSION = 10; 
+    // ---------------------
+
+    let currentQuestionIndex = 0;
+    let activeQuestionList = []; 
+    let currentLevel = 0;
+
+    // DOM Elements
+    const menuScreen = document.getElementById('menu-screen');
+    const gameScreen = document.getElementById('game-screen');
+    
+    const dropZone = document.getElementById('drop-zone');
+    const wordBank = document.getElementById('word-bank');
+    const feedback = document.getElementById('feedback-area');
+    
+    const checkBtn = document.getElementById('check-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const restartBtn = document.getElementById('restart-btn');
+    const menuBtn = document.getElementById('menu-btn');
+    
+    const currentQSpan = document.getElementById('current-q');
+    const totalQSpan = document.getElementById('total-q');
+
+    function showMenu() {
+        gameScreen.classList.add('hidden');
+        menuScreen.classList.remove('hidden');
+        // Reset game state
+        dropZone.innerHTML = '';
+        wordBank.innerHTML = '';
+        feedback.innerText = '';
+    }
+
+    function startGame(level) {
+        if (typeof gameData === 'undefined' || gameData.length === 0) {
+            alert("Error: questions.js not loaded or empty.");
+            return;
+        }
+
+        currentLevel = level;
+
+        // 1. Filter questions by the selected level
+        let filteredList = gameData.filter(q => q.level === level);
+
+        if (filteredList.length === 0) {
+            alert("No questions found for this level yet!");
+            return;
+        }
+
+        // 2. Shuffle the filtered list
+        shuffleArray(filteredList);
+
+        // 3. Slice the list if we want a shorter game session
+        if (QUESTIONS_PER_SESSION && QUESTIONS_PER_SESSION < filteredList.length) {
+            activeQuestionList = filteredList.slice(0, QUESTIONS_PER_SESSION);
+        } else {
+            activeQuestionList = filteredList;
+        }
+
+        // 4. Reset counters & UI
+        currentQuestionIndex = 0;
+        totalQSpan.innerText = activeQuestionList.length;
+        
+        // 5. Switch screens
+        menuScreen.classList.add('hidden');
+        gameScreen.classList.remove('hidden');
+        
+        restartBtn.classList.add('hidden');
+        menuBtn.classList.add('hidden');
+        
+        loadQuestion(currentQuestionIndex);
+
+        // Event Listeners
+        checkBtn.onclick = checkAnswer;
+        nextBtn.onclick = nextQuestion;
+        restartBtn.onclick = () => startGame(currentLevel); // Restart same level
+    }
+
+    function loadQuestion(index) {
+        // Reset UI
+        dropZone.innerHTML = '';
+        wordBank.innerHTML = '';
+        feedback.className = '';
+        feedback.innerText = '';
+        checkBtn.classList.remove('hidden');
+        nextBtn.classList.add('hidden');
+        currentQSpan.innerText = index + 1;
+
+        const data = activeQuestionList[index];
+
+        let parts;
+        // If blocks exist (Level 0, 2, etc), use them. Otherwise split by space.
+        if (data.blocks && Array.isArray(data.blocks)) {
+            parts = [...data.blocks];
+        } else {
+            parts = data.correct.split(" ");
+        }
+
+        // Shuffle the words/blocks
+        const shuffledWords = [...parts].sort(() => Math.random() - 0.5);
+
+        shuffledWords.forEach(wordText => {
+            createWordCard(wordText, 'bank');
+        });
+    }
+
+    function createWordCard(text, location) {
+        const card = document.createElement('div');
+        card.innerText = text;
+        card.className = 'word-card';
+        
+        card.onclick = function() {
+            if (card.parentElement.id === 'word-bank') {
+                wordBank.removeChild(card);
+                dropZone.appendChild(card);
+            } else {
+                dropZone.removeChild(card);
+                wordBank.appendChild(card);
+            }
+        };
+
+        if(location === 'bank') {
+            wordBank.appendChild(card);
+        } else {
+            dropZone.appendChild(card);
+        }
+    }
+
+    function checkAnswer() {
+        const data = activeQuestionList[currentQuestionIndex];
+        const userSentence = Array.from(dropZone.children)
+                                  .map(card => card.innerText)
+                                  .join(' ');
+
+        // Note: For Level 0 (blocks), the userSentence might look like "The big dog chased the cat."
+        // We compare this string to data.correct.
+        
+        // Remove trailing spaces just in case
+        if (userSentence.trim() === data.correct.trim()) {
+            feedback.innerText = data.feedback;
+            feedback.className = 'success';
+            checkBtn.classList.add('hidden');
+            nextBtn.classList.remove('hidden');
+        } else {
+            feedback.innerText = "Try again. Hint: " + data.hint;
+            feedback.className = 'error';
+        }
+    }
+
+    function nextQuestion() {
+        currentQuestionIndex++;
+        if(currentQuestionIndex < activeQuestionList.length) {
+            loadQuestion(currentQuestionIndex);
+        } else {
+            showEndScreen();
+        }
+    }
+
+    function showEndScreen() {
+        dropZone.innerHTML = '';
+        wordBank.innerHTML = '';
+        checkBtn.classList.add('hidden');
+        nextBtn.classList.add('hidden');
+        
+        restartBtn.classList.remove('hidden');
+        menuBtn.classList.remove('hidden');
+        
+        feedback.innerText = "Level Complete! Great job.";
+        feedback.className = 'success';
+    }
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+</script>
+
+</body>
+</html>
