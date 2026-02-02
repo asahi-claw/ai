@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Polynomial Expansion Game</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; touch-action: manipulation; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Animations */
+        .fade-in { animation: fadeIn 0.5s ease-in-out forwards; opacity: 0; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Active Input Highlight */
+        .input-active {
+            border-color: #3b82f6 !important; /* Blue-500 */
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
+            background-color: #eff6ff;
+        }
+
+        /* Keyboard Slide Animation */
+        #virtual-keyboard {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .keyboard-hidden {
+            transform: translateY(100%);
+        }
+        .keyboard-visible {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 flex flex-col items-center pb-80"> 
+    <!-- Added pb-80 to body so content isn't hidden behind keyboard -->
+
+    <!-- Header & Score -->
+    <div class="w-full max-w-2xl flex justify-between items-center mt-6 mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-100 mx-4">
+        <div class="flex items-center gap-2 text-xl font-bold text-slate-700">
+            <i data-lucide="calculator" class="w-6 h-6 text-blue-500"></i>
+            <span>多項式大挑戰</span>
+        </div>
+        <div class="bg-blue-100 text-blue-800 px-4 py-1 rounded-full font-bold">
+            得分: <span id="score-display">0</span>
+        </div>
+    </div>
+
+    <!-- Game Container -->
+    <div class="w-full max-w-2xl bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100 mx-4">
+        
+        <!-- Problem Display -->
+        <div class="bg-slate-800 text-white p-8 text-center relative">
+            <div class="text-sm text-slate-400 mb-2 uppercase tracking-wider">Expand and Simplify</div>
+            <div class="text-2xl md:text-3xl font-bold mb-4">展開及化簡以下多項式</div>
+            <div id="problem-text" class="text-3xl md:text-4xl font-mono font-bold tracking-wide flex flex-wrap justify-center items-center gap-3 min-h-[60px]"></div>
+        </div>
+
+        <div class="p-6 md:p-8 space-y-8">
+            
+            <!-- STEP 1: Expand -->
+            <div id="step1-container">
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="bg-blue-100 text-blue-700 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">1</div>
+                    <h3 class="font-bold text-lg">第一步：去括號</h3>
+                </div>
+                
+                <div class="flex flex-wrap items-center justify-center gap-2 bg-slate-50 p-6 rounded-xl border border-slate-200">
+                    <div id="step1-static" class="font-mono text-xl md:text-2xl text-slate-500 flex items-center mr-2"></div>
+
+                    <!-- Input 1 -->
+                    <div class="flex items-center gap-1">
+                        <button id="s1-btn-1" onclick="toggleSign('s1-btn-1')" class="sign-btn w-10 h-10 rounded-full font-bold text-xl flex items-center justify-center transition-colors bg-blue-100 text-blue-600 border-2 border-blue-200 hover:bg-blue-200" data-sign="+">+</button>
+                        <!-- Added readonly and onclick -->
+                        <input id="s1-val-1" type="text" readonly onclick="activateInput('s1-val-1')" placeholder="?" class="cursor-pointer w-14 h-12 text-center border-2 border-gray-300 rounded-lg text-xl font-mono bg-white select-none">
+                        <span id="s1-var-1" class="font-serif text-xl italic">x</span>
+                    </div>
+
+                    <!-- Input 2 -->
+                    <div class="flex items-center gap-1">
+                        <button id="s1-btn-2" onclick="toggleSign('s1-btn-2')" class="sign-btn w-10 h-10 rounded-full font-bold text-xl flex items-center justify-center transition-colors bg-blue-100 text-blue-600 border-2 border-blue-200 hover:bg-blue-200" data-sign="+">+</button>
+                        <input id="s1-val-2" type="text" readonly onclick="activateInput('s1-val-2')" placeholder="?" class="cursor-pointer w-14 h-12 text-center border-2 border-gray-300 rounded-lg text-xl font-mono bg-white select-none">
+                        <span id="s1-var-2" class="font-serif text-xl italic">y</span>
+                    </div>
+                </div>
+
+                <div class="mt-4 text-center">
+                    <button id="check-step1-btn" onclick="checkStep1()" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-bold transition-transform active:scale-95 flex items-center gap-2 mx-auto shadow-md">
+                        檢查去括號 <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP 2: Simplify -->
+            <div id="step2-container" class="hidden fade-in">
+                <div class="w-full h-px bg-slate-200 mb-8"></div>
+                
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="bg-blue-100 text-blue-700 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">2</div>
+                    <h3 class="font-bold text-lg">第二步：合併同類項</h3>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-center gap-2 bg-blue-50 p-6 rounded-xl border border-blue-100">
+                    <span class="font-bold text-xl mr-2">=</span>
+                    
+                    <!-- Input 1 -->
+                    <div class="flex items-center gap-1">
+                        <button id="s2-btn-1" onclick="toggleSign('s2-btn-1')" class="sign-btn w-10 h-10 rounded-full font-bold text-xl flex items-center justify-center transition-colors bg-blue-100 text-blue-600 border-2 border-blue-200 hover:bg-blue-200" data-sign="+">+</button>
+                        <input id="s2-val-1" type="text" readonly onclick="activateInput('s2-val-1')" placeholder="?" class="cursor-pointer w-14 h-12 text-center border-2 border-gray-300 rounded-lg text-xl font-mono bg-white select-none">
+                        <span id="s2-var-1" class="font-serif text-xl italic">x</span>
+                    </div>
+
+                    <!-- Input 2 -->
+                    <div class="flex items-center gap-1">
+                        <button id="s2-btn-2" onclick="toggleSign('s2-btn-2')" class="sign-btn w-10 h-10 rounded-full font-bold text-xl flex items-center justify-center transition-colors bg-blue-100 text-blue-600 border-2 border-blue-200 hover:bg-blue-200" data-sign="+">+</button>
+                        <input id="s2-val-2" type="text" readonly onclick="activateInput('s2-val-2')" placeholder="?" class="cursor-pointer w-14 h-12 text-center border-2 border-gray-300 rounded-lg text-xl font-mono bg-white select-none">
+                        <span id="s2-var-2" class="font-serif text-xl italic">y</span>
+                    </div>
+                </div>
+
+                <div class="mt-4 text-center">
+                    <button id="check-step2-btn" onclick="checkStep2()" class="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-full font-bold transition-transform active:scale-95 flex items-center gap-2 mx-auto shadow-md">
+                        提交答案 <i data-lucide="check" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Feedback Area -->
+            <div id="feedback-area" class="hidden p-4 rounded-lg flex items-center gap-3">
+                <div id="feedback-icon"></div>
+                <span id="feedback-msg" class="font-bold"></span>
+                <button id="next-btn" onclick="initGame()" class="hidden ml-auto bg-green-700 text-white px-4 py-2 rounded-md text-sm font-bold hover:bg-green-800 flex items-center gap-1 shadow-sm">
+                    下一題 <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                </button>
+            </div>
+
+        </div>
+    </div>
+    
+    <div class="mt-8 text-slate-400 text-sm px-4 text-center">
+        提示：點擊方格喚起鍵盤，點擊圓形按鈕切換正負號。
+    </div>
+
+    <!-- VIRTUAL KEYBOARD -->
+    <div id="virtual-keyboard" class="fixed bottom-0 left-0 w-full bg-slate-100 border-t border-slate-300 shadow-2xl z-50 keyboard-hidden pb-6">
+        <!-- Keyboard Header -->
+        <div class="flex justify-between items-center px-4 py-2 bg-slate-200 border-b border-slate-300">
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">數字鍵盤</span>
+            <button onclick="hideKeyboard()" class="text-slate-600 hover:text-slate-900 p-2">
+                <i data-lucide="chevron-down" class="w-6 h-6"></i>
+            </button>
+        </div>
+        
+        <!-- Keys Grid -->
+        <div class="grid grid-cols-3 gap-2 p-2 max-w-md mx-auto">
+            <button onclick="kpPress(1)" class="bg-white rounded-lg shadow-sm p-4 text-2xl font-bold text-slate-700 active:bg-slate-200">1</button>
+            <button onclick="kpPress(2)" class="bg-white rounded-lg shadow-sm p-4 text-2xl font-bold text-slate-700 active:bg-slate-200">2</button>
+            <button onclick="kpPress(3)" class="bg-white rounded-lg shadow-sm p-4 text-2xl font-bold text-slate-700 active:bg-slate-200">3</button>
+            
+            <button onclick="kpPress(4)" class="bg-white rounded-lg shadow-sm p-4 text-2xl font-bold text-slate-700 active:bg-slate-200">4</button>
+            <button onclick="kpPress(5)" class="bg-white rounded-lg shadow-sm p-4 text-2xl font-bold text-slate-700 active:bg-slate-200">5</button>
+            <button onclick="kpPress(6)" class="bg-white rounded-lg shadow-sm p-4 text-2xl font-bold text-slate-700 active:bg-slate-200">6</button>
+            
+            <button onclick="kpPress(7)" class="bg-white rounded-lg shadow-sm p-4 text-2xl font-bold text-slate-700 active:bg-slate-200">7</button>
+            <button onclick="kpPress(8)" class="bg-white rounded-lg shadow-sm p-4 text-2xl font-bold text-slate-700 active:bg-slate-200">8</button>
+            <button onclick="kpPress(9)" class="bg-white rounded-lg shadow-sm p-4 text-2xl font-bold text-slate-700 active:bg-slate-200">9</button>
+            
+            <button onclick="kpBackspace()" class="bg-red-50 rounded-lg shadow-sm p-4 text-xl font-bold text-red-600 active:bg-red-100 flex items-center justify-center">
+                <i data-lucide="delete" class="w-6 h-6"></i>
+            </button>
+            <button onclick="kpPress(0)" class="bg-white rounded-lg shadow-sm p-4 text-2xl font-bold text-slate-700 active:bg-slate-200">0</button>
+            <button onclick="hideKeyboard()" class="bg-blue-600 rounded-lg shadow-sm p-4 text-xl font-bold text-white active:bg-blue-700 flex items-center justify-center">
+                OK
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Logic -->
+    <script>
+        let score = 0;
+        let currentProblem = {};
+        let activeInputId = null;
+        const VARIABLE_PAIRS = [['x', 'y'], ['a', 'b'], ['m', 'n'], ['p', 'q'], ['u', 'v']];
+
+        function getRandomInt(min, max) {
+            let num = Math.floor(Math.random() * (max - min + 1)) + min;
+            return num === 0 ? 1 : num;
+        }
+
+        window.onload = function() {
+            initGame();
+            lucide.createIcons();
+        };
+
+        // --- KEYBOARD LOGIC ---
+        function activateInput(id) {
+            // If the input is disabled (game step locked), do nothing
+            const inputEl = document.getElementById(id);
+            if (inputEl.disabled) return;
+
+            activeInputId = id;
+            
+            // Remove highlight from all inputs
+            document.querySelectorAll('input').forEach(el => el.classList.remove('input-active'));
+            
+            // Add highlight to current
+            inputEl.classList.add('input-active');
+            
+            // Show Keyboard
+            const kb = document.getElementById('virtual-keyboard');
+            kb.classList.remove('keyboard-hidden');
+            kb.classList.add('keyboard-visible');
+        }
+
+        function hideKeyboard() {
+            const kb = document.getElementById('virtual-keyboard');
+            kb.classList.remove('keyboard-visible');
+            kb.classList.add('keyboard-hidden');
+            
+            // Remove highlight
+            document.querySelectorAll('input').forEach(el => el.classList.remove('input-active'));
+            activeInputId = null;
+        }
+
+        function kpPress(num) {
+            if (!activeInputId) return;
+            const input = document.getElementById(activeInputId);
+            if (input.value.length < 3) { // Limit length
+                input.value += num;
+            }
+        }
+
+        function kpBackspace() {
+            if (!activeInputId) return;
+            const input = document.getElementById(activeInputId);
+            input.value = input.value.slice(0, -1);
+        }
+        // -----------------------
+
+        function initGame() {
+            hideKeyboard();
+            
+            document.getElementById('step1-container').classList.remove('opacity-50', 'pointer-events-none');
+            document.getElementById('step2-container').classList.add('hidden');
+            document.getElementById('feedback-area').classList.add('hidden');
+            document.getElementById('check-step1-btn').classList.remove('hidden');
+            document.getElementById('check-step2-btn').classList.remove('hidden');
+            document.getElementById('next-btn').classList.add('hidden');
+            
+            // Reset Inputs
+            document.querySelectorAll('input').forEach(i => {
+                i.value = '';
+                i.disabled = false;
+                i.classList.remove('input-active');
+            });
+            
+            // Reset Sign Buttons
+            document.querySelectorAll('.sign-btn').forEach(btn => {
+                btn.dataset.sign = '+';
+                btn.textContent = '+';
+                btn.disabled = false;
+                setBtnStyle(btn, '+');
+            });
+
+            generateProblem();
+        }
+
+        function generateProblem() {
+            const vars = VARIABLE_PAIRS[Math.floor(Math.random() * VARIABLE_PAIRS.length)];
+            
+            currentProblem = {
+                v1: vars[0],
+                v2: vars[1],
+                c1: getRandomInt(1, 9),
+                c2: getRandomInt(-9, 9),
+                c3: getRandomInt(-9, 9),
+                c4: getRandomInt(-9, 9),
+                isAddition: Math.random() > 0.5
+            };
+
+            renderProblem();
+        }
+
+        function renderPolynomial(c1, v1, c2, v2) {
+            const term1 = `${c1 === 1 ? '' : (c1 === -1 ? '-' : c1)}${v1}`;
+            const sign2 = c2 >= 0 ? '+' : '-';
+            const absC2 = Math.abs(c2);
+            const term2 = `${absC2 === 1 ? '' : absC2}${v2}`;
+            return `(${term1} ${sign2} ${term2})`;
+        }
+
+        function renderProblem() {
+            const p = currentProblem;
+            const poly1 = renderPolynomial(p.c1, p.v1, p.c2, p.v2);
+            const poly2 = renderPolynomial(p.c3, p.v1, p.c4, p.v2);
+            const op = p.isAddition ? '+' : '-';
+
+            const html = `<span>${poly1}</span> <span class="text-yellow-400 mx-2">${op}</span> <span>${poly2}</span>`;
+            document.getElementById('problem-text').innerHTML = html;
+
+            const staticTerm1 = `${p.c1 === 1 ? '' : (p.c1 === -1 ? '-' : p.c1)}${p.v1}`;
+            const staticSign = p.c2 >= 0 ? ' + ' : ' - ';
+            const staticTerm2 = `${Math.abs(p.c2)}${p.v2}`;
+            document.getElementById('step1-static').textContent = `${staticTerm1}${staticSign}${staticTerm2}`;
+
+            document.getElementById('s1-var-1').textContent = p.v1;
+            document.getElementById('s1-var-2').textContent = p.v2;
+            document.getElementById('s2-var-1').textContent = p.v1;
+            document.getElementById('s2-var-2').textContent = p.v2;
+        }
+
+        function toggleSign(btnId) {
+            const btn = document.getElementById(btnId);
+            const current = btn.dataset.sign;
+            const next = current === '+' ? '-' : '+';
+            
+            btn.dataset.sign = next;
+            btn.textContent = next;
+            setBtnStyle(btn, next);
+        }
+
+        function setBtnStyle(btn, sign) {
+            btn.classList.remove(
+                'bg-blue-100', 'text-blue-600', 'border-blue-200', 'hover:bg-blue-200',
+                'bg-orange-100', 'text-orange-600', 'border-orange-200', 'hover:bg-orange-200'
+            );
+
+            if (sign === '+') {
+                btn.classList.add('bg-blue-100', 'text-blue-600', 'border-blue-200', 'hover:bg-blue-200');
+            } else {
+                btn.classList.add('bg-orange-100', 'text-orange-600', 'border-orange-200', 'hover:bg-orange-200');
+            }
+        }
+
+        function showFeedback(type, msg) {
+            const area = document.getElementById('feedback-area');
+            const iconDiv = document.getElementById('feedback-icon');
+            const msgSpan = document.getElementById('feedback-msg');
+
+            area.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-orange-100', 'text-orange-800');
+            iconDiv.innerHTML = '';
+
+            if (type === 'success') {
+                area.classList.add('bg-green-100', 'text-green-800');
+                iconDiv.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            } else {
+                area.classList.add('bg-orange-100', 'text-orange-800');
+                iconDiv.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+            }
+
+            msgSpan.textContent = msg;
+        }
+
+        function getInputValue(btnId, inputId) {
+            const sign = document.getElementById(btnId).dataset.sign === '-' ? -1 : 1;
+            const valStr = document.getElementById(inputId).value;
+            if (valStr === '') return null;
+            return sign * parseInt(valStr);
+        }
+
+        function checkStep1() {
+            hideKeyboard();
+            const userC3 = getInputValue('s1-btn-1', 's1-val-1');
+            const userC4 = getInputValue('s1-btn-2', 's1-val-2');
+
+            if (userC3 === null || userC4 === null) {
+                showFeedback('error', '請填寫所有數字欄位');
+                return;
+            }
+
+            const targetC3 = currentProblem.isAddition ? currentProblem.c3 : -currentProblem.c3;
+            const targetC4 = currentProblem.isAddition ? currentProblem.c4 : -currentProblem.c4;
+
+            if (userC3 === targetC3 && userC4 === targetC4) {
+                showFeedback('success', '去括號正確！現在請合併同類項。');
+                
+                document.getElementById('step1-container').classList.add('opacity-50', 'pointer-events-none');
+                document.getElementById('check-step1-btn').classList.add('hidden');
+                document.getElementById('step2-container').classList.remove('hidden');
+                lucide.createIcons();
+            } else {
+                let hint = currentProblem.isAddition 
+                    ? "提示：括號前面是加號，裡面不用變號喔。" 
+                    : "提示：括號前面是減號，裡面每一項都要變號！";
+                showFeedback('error', `答案不對。${hint}`);
+            }
+        }
+
+        function checkStep2() {
+            hideKeyboard();
+            const userFinal1 = getInputValue('s2-btn-1', 's2-val-1');
+            const userFinal2 = getInputValue('s2-btn-2', 's2-val-2');
+
+            if (userFinal1 === null || userFinal2 === null) {
+                showFeedback('error', '請填寫所有數字欄位');
+                return;
+            }
+
+            const expandedC3 = currentProblem.isAddition ? currentProblem.c3 : -currentProblem.c3;
+            const expandedC4 = currentProblem.isAddition ? currentProblem.c4 : -currentProblem.c4;
+            
+            const finalC1 = currentProblem.c1 + expandedC3;
+            const finalC2 = currentProblem.c2 + expandedC4;
+
+            if (userFinal1 === finalC1 && userFinal2 === finalC2) {
+                showFeedback('success', '太棒了！全對！');
+                score++;
+                document.getElementById('score-display').textContent = score;
+                
+                document.getElementById('check-step2-btn').classList.add('hidden');
+                document.querySelectorAll('#step2-container input, #step2-container button').forEach(el => el.disabled = true);
+                
+                document.getElementById('next-btn').classList.remove('hidden');
+                lucide.createIcons();
+            } else {
+                showFeedback('error', `計算錯誤。請檢查 ${currentProblem.v1} 與 ${currentProblem.v1} 合併，${currentProblem.v2} 與 ${currentProblem.v2} 合併。`);
+            }
+        }
+    </script>
+</body>
+</html>
