@@ -1,6 +1,4 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
+<!DOCTYPE html><html lang="zh-Hant"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Horizontal Card Generator</title>
@@ -57,12 +55,6 @@
         input[type="color"] { border: none; width: 30px; height: 30px; cursor: pointer; background: none; }
         input[type="number"] { width: 60px; padding: 4px; border: 1px solid #ccc; border-radius: 4px; }
         
-        textarea {
-            width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 8px; resize: vertical; font-family: inherit;
-        }
-
-        select { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
-
         button {
             background-color: #4a90e2; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; transition: background 0.2s; width: 100%; margin-bottom: 5px;
         }
@@ -146,12 +138,20 @@
             border-radius: 8px;
         }
 
-        .image-area img { width: 100%; height: 100%; object-fit: contain; }
-        .image-placeholder { color: rgba(0,0,0,0.3); font-size: 1rem; text-align: center; padding: 20px; user-select: none; pointer-events: none; }
+        #display-image {
+            width: 100%;
+            height: 100%;
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            display: none;
+        }
+        
+        .image-placeholder { color: rgba(0,0,0,0.3); font-size: 1rem; text-align: center; padding: 20px; user-select: none; pointer-events: none; position: absolute; }
 
         /* 3. Body (Bottom) */
         .body-area {
-            flex: 1; /* This ensures it fills the remaining space */
+            flex: 1; 
             padding: 20px 40px; 
             display: flex; 
             flex-direction: column;
@@ -167,7 +167,7 @@
             width: 100%; 
             text-align: justify; 
             line-height: 1.6; 
-            word-break: break-word; /* Prevents overflow */
+            word-break: break-word; 
             white-space: pre-wrap;
         }
 
@@ -184,11 +184,6 @@
             background: none; border: 1px solid transparent; cursor: pointer; padding: 4px 8px; font-weight: bold; color: #333; width: auto;
         }
         .toolbar-btn:hover { background: #eee; }
-
-        .spinner {
-            border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; display: none; margin: 10px auto;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         @media (max-width: 768px) {
             body { flex-direction: column; overflow: auto; height: auto; }
@@ -272,28 +267,8 @@
             <span class="control-title">Photo</span>
             <button onclick="document.getElementById('image-upload').click()">Upload Image</button>
             <input type="file" id="image-upload" accept="image/*" style="display: none;">
-            
-            <div class="control-row" style="margin-top: 10px;">
-                <label>Image Fit Mode</label>
-            </div>
-            <select id="image-fit">
-                <option value="contain">Fit Whole Image (Original Ratio)</option>
-                <option value="cover">Fill Frame (Crop)</option>
-            </select>
         </div>
         
-        <div class="control-group" id="ai-controls">
-            <span class="control-title">Generate Image with AI</span>
-            <div class="tip" style="margin-bottom: 5px; font-size: 0.75rem;">
-               <span>🌐</span> Uses CORS proxy to bypass school server restrictions.
-            </div>
-            <textarea id="ai-prompt" rows="3" placeholder="Describe the image..."></textarea>
-            
-            <button onclick="generateImage()" id="gen-btn">Generate</button>
-            <div class="spinner" id="loading-spinner"></div>
-            <div id="api-error" style="color: red; font-size: 0.8rem; display: none; margin-top: 5px; white-space: pre-wrap;"></div>
-        </div>
-
         <div class="control-group">
             <span class="control-title">Export</span>
             <button class="secondary" onclick="exportPNG()">Save as PNG Image</button>
@@ -314,7 +289,7 @@
                     <div class="image-placeholder" id="img-placeholder-text">
                         (Optional Image Area)
                     </div>
-                    <img id="display-image" src="" style="display: none;" alt="Artwork">
+                    <div id="display-image"></div>
                 </div>
 
                 <!-- 3. Body Text (Bottom) -->
@@ -346,7 +321,6 @@
         const toggleImgSection = document.getElementById('toggle-image-section');
         const heightControlRow = document.getElementById('height-control-row');
         const photoControls = document.getElementById('photo-controls');
-        const aiControls = document.getElementById('ai-controls');
         
         const sizeTitle = document.getElementById('title-size');
         const sizeSubtitle = document.getElementById('subtitle-size');
@@ -359,7 +333,6 @@
         const colBody = document.getElementById('color-body');
         
         const imgUpload = document.getElementById('image-upload');
-        const imgFit = document.getElementById('image-fit');
 
         // --- Event Listeners: Layout ---
         
@@ -369,13 +342,11 @@
                 heightControlRow.style.opacity = '1';
                 heightControlRow.style.pointerEvents = 'auto';
                 photoControls.style.display = 'block';
-                aiControls.style.display = 'block';
             } else {
                 imageArea.style.display = 'none';
                 heightControlRow.style.opacity = '0.5';
                 heightControlRow.style.pointerEvents = 'none';
                 photoControls.style.display = 'none';
-                aiControls.style.display = 'none';
             }
         });
 
@@ -406,7 +377,7 @@
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(event) {
-                    displayImage.src = event.target.result;
+                    displayImage.style.backgroundImage = `url(${event.target.result})`;
                     displayImage.style.display = 'block';
                     placeholderText.style.display = 'none';
                     imageArea.classList.remove('empty');
@@ -414,80 +385,6 @@
                 reader.readAsDataURL(file);
             }
         });
-
-        imgFit.addEventListener('change', (e) => {
-            displayImage.style.objectFit = e.target.value;
-        });
-
-        // --- AI Image Generation (With CORS Proxy) ---
-        async function generateImage() {
-            const prompt = document.getElementById('ai-prompt').value;
-            const spinner = document.getElementById('loading-spinner');
-            const errorDiv = document.getElementById('api-error');
-            const btn = document.getElementById('gen-btn');
-
-            if (!prompt) {
-                alert("Please enter a prompt.");
-                return;
-            }
-
-            errorDiv.style.display = 'none';
-            spinner.style.display = 'block';
-            btn.disabled = true;
-            btn.innerText = "Generating...";
-
-            // 1. The actual target URL
-            const targetUrl = `https://exam01.bhss.edu.hk/api_poe.php?text=${encodeURIComponent(prompt)}`;
-            
-            // 2. Wrap it in a CORS proxy (allorigins.win)
-            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}&timestamp=${new Date().getTime()}`;
-
-            try {
-                const response = await fetch(proxyUrl);
-
-                if (!response.ok) {
-                    throw new Error(`Proxy responded with status: ${response.status}`);
-                }
-
-                const textData = await response.text();
-                let imageUrl = "";
-
-                try {
-                    const json = JSON.parse(textData);
-                    if (typeof json === 'string') {
-                        imageUrl = json;
-                    } else if (typeof json === 'object') {
-                        imageUrl = json.url || json.image || json.link || json.data || "";
-                    }
-                } catch (e) {
-                    imageUrl = textData.trim();
-                }
-
-                if (imageUrl && imageUrl.startsWith('http')) {
-                    displayImage.crossOrigin = "anonymous"; 
-                    displayImage.src = imageUrl;
-                    displayImage.style.display = 'block';
-                    placeholderText.style.display = 'none';
-                    imageArea.classList.remove('empty');
-                    
-                    displayImage.onerror = () => {
-                         errorDiv.innerText = "The API returned a URL, but the image failed to load.\nURL: " + imageUrl;
-                         errorDiv.style.display = 'block';
-                    };
-                } else {
-                    throw new Error("The API did not return a valid image URL.");
-                }
-
-            } catch (err) {
-                console.error(err);
-                errorDiv.innerText = "Error: " + err.message;
-                errorDiv.style.display = 'block';
-            } finally {
-                spinner.style.display = 'none';
-                btn.disabled = false;
-                btn.innerText = "Generate";
-            }
-        }
 
         // --- Toolbar & Export Logic ---
         const toolbar = document.getElementById('toolbar');
@@ -520,13 +417,13 @@
             if(wasEmpty) imageArea.style.border = 'none';
             if(wasEmpty) placeholderText.style.display = 'none';
 
-            // We use scale: 2 for higher resolution (retina support)
-            // useCORS: true allows external images (if proxy headers are correct)
-            html2canvas(document.getElementById('preview-container'), { scale: 2, useCORS: true }).then(canvas => {
-                // Convert canvas to a data URL (PNG format)
+            // ADDED: backgroundColor: null to ensure transparent corners
+            html2canvas(document.getElementById('preview-container'), { 
+                scale: 2, 
+                useCORS: true,
+                backgroundColor: null 
+            }).then(canvas => {
                 const imgData = canvas.toDataURL('image/png');
-                
-                // Create a temporary link to trigger download
                 const link = document.createElement('a');
                 link.href = imgData;
                 link.download = 'card-design.png';
@@ -534,16 +431,16 @@
                 link.click();
                 document.body.removeChild(link);
                 
-                // Restore UI state
                 if(wasEmpty) imageArea.style.border = '';
                 if(wasEmpty) placeholderText.style.display = 'block';
             }).catch(err => {
-                alert("Could not generate image. If you used an AI image, the browser might be blocking the export due to security (CORS).");
+                alert("Could not generate image.");
                 console.error(err);
                 if(wasEmpty) imageArea.style.border = '';
                 if(wasEmpty) placeholderText.style.display = 'block';
             });
         }
     </script>
-</body>
-</html>
+
+
+</body></html>
